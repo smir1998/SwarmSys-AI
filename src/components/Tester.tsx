@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import { FONTS, PANGRAMS } from "../lib/data";
 import { Icon, Reveal, SectionHead } from "../lib/ui";
 
@@ -95,7 +95,7 @@ export default function Tester() {
     }
   };
 
-  const previewStyle: React.CSSProperties = {
+  const previewStyle: CSSProperties = {
     fontFamily: font.family,
     fontSize: `${size}px`,
     fontWeight: weight,

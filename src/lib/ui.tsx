@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { CSSProperties, ReactNode, useEffect, useRef, useState } from "react";
 
 /* prefers-reduced-motion */
 export function usePRM(): boolean {
@@ -91,7 +91,7 @@ export function Reveal({
           ? { "--rx": "0px", "--ry": "0px" }
           : undefined;
   return (
-    <div ref={ref} className={`reveal ${className}`} style={{ transitionDelay: `${delay}ms`, ...vars } as React.CSSProperties}>
+    <div ref={ref} className={`reveal ${className}`} style={{ transitionDelay: `${delay}ms`, ...vars } as CSSProperties}>
       {children}
     </div>
   );

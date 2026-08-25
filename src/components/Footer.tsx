@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import { FONTS } from "../lib/data";
 import { Icon, Marquee } from "../lib/ui";
 
@@ -6,7 +6,7 @@ export default function Footer() {
   const [email, setEmail] = useState("");
   const [subState, setSubState] = useState<"idle" | "done" | "error">("idle");
 
-  const subscribe = (e: React.FormEvent) => {
+  const subscribe = (e: FormEvent) => {
     e.preventDefault();
     if (!email.includes("@") || email.length < 5) {
       setSubState("error");

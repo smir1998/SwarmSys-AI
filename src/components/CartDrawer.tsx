@@ -53,8 +53,8 @@ export default function CartDrawer({
       <aside
         role="dialog"
         aria-label="License cart"
-        className={`absolute right-0 top-0 flex h-full w-[min(430px,94vw)] flex-col border-l-2 border-ink bg-bg transition-transform duration-500 ease-[cubic-bezier(0.2,0.7,0.2,1)] ${
-          open ? "translate-x-0" : "translate-x-full"
+        className={`absolute right-0 top-0 flex h-full w-[min(430px,94vw)] flex-col border-l-2 border-ink bg-bg transition-[transform,visibility] duration-500 ease-[cubic-bezier(0.2,0.7,0.2,1)] ${
+          open ? "visible translate-x-0" : "invisible translate-x-full"
         }`}
       >
         <div className="flex items-center justify-between border-b-2 border-ink px-6 py-5">
