@@ -4,14 +4,17 @@ import { Icon, Reveal, SectionHead } from "../lib/ui";
 
 const TREE = `multi-agent-ai-system/
 │
-├── agents/               # one module per specialist
-│   ├── planner.py        # decompose → Subtask[]
-│   ├── researcher.py     # web_search + github_repos + kb
+├── agents/               # one module per specialist (8)
+│   ├── planner.py        # decompose → Subtask[] + hf model
+│   ├── researcher.py     # web_search + github + hf hub + kb
 │   ├── coder.py          # python_exec + sql_query sandbox
+│   ├── qa.py             # test matrix + coverage gate
 │   ├── reviewer.py       # lint + tests → 0–100 score
+│   ├── security.py       # sast + OSV.dev CVE scan
+│   ├── devops.py         # dockerfile + ci + rollback plan
 │   └── reporter.py       # merge → report.md + pdf
 │
-├── tools/                # search, github, calc, sql, vector
+├── tools/                # search, github, hf, osv, sql, vector
 ├── memory/               # short-term dict + long-term store
 ├── workflows/
 │   └── graph.py          # LangGraph state machine
@@ -23,24 +26,29 @@ const TREE = `multi-agent-ai-system/
 
 const QUICKSTART = `# workflows/graph.py — this console, as a real service
 from langgraph.graph import StateGraph, END
-from agents import planner, researcher, coder, reviewer, reporter
+from agents import planner, researcher, coder, qa, reviewer, \\
+                   security, devops, reporter
 
 g = StateGraph(RunState)
-g.add_node("planner", planner.run)
-g.add_node("research", researcher.run)
-g.add_node("coder", coder.run)
-g.add_node("reviewer", reviewer.run)
-g.add_node("reporter", reporter.run)
+for name, mod in [("planner", planner), ("research", researcher),
+                  ("coder", coder), ("qa", qa), ("reviewer", reviewer),
+                  ("security", security), ("devops", devops),
+                  ("reporter", reporter)]:
+    g.add_node(name, mod.run)
 
 g.set_entry_point("planner")
 g.add_edge("planner", "research")
-g.add_edge("planner", "coder")          # fan-out: parallel
-g.add_edge("research", "reviewer")
-g.add_edge("coder", "reviewer")         # fan-in
+g.add_edge("planner", "coder")          # fan-out ∥ (parallel)
+g.add_edge("research", "qa")
+g.add_edge("coder", "qa")               # fan-in → quality gate
+g.add_edge("qa", "reviewer")
 g.add_conditional_edges(
     "reviewer", reviewer.route,
-    {"patch": "coder", "ship": "reporter"},
+    {"patch": "coder", "ship": "security"},
 )
+g.add_edge("reviewer", "devops")        # security ∥ devops (harden)
+g.add_edge("security", "reporter")
+g.add_edge("devops", "reporter")        # fan-in → final merge
 g.add_edge("reporter", END)
 
 app = g.compile()   # serve via FastAPI: POST /run {"task": ...}`;
@@ -56,7 +64,7 @@ const ADVANCED: [string, string, string][] = [
   ["08", "Long-term memory", "persisted preferences — stack, domain history, live-source counts — bias the planner on repeat domains"],
 ];
 
-const FRAMEWORKS = ["LangGraph", "LangChain", "CrewAI", "AutoGen", "FastAPI", "Chroma", "pgvector", "Render", "Railway"];
+const FRAMEWORKS = ["LangGraph", "LangChain", "CrewAI", "AutoGen", "FastAPI", "Hugging Face", "Chroma", "pgvector", "Render", "Railway"];
 
 export default function ShipSection() {
   const [copied, setCopied] = useState(false);
@@ -122,7 +130,7 @@ export default function ShipSection() {
             <p className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
               <span className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-mut">
                 <Icon name="zap" className="h-3.5 w-3.5 text-coder" />
-                graph.py — the same five nodes
+                graph.py — the same eight nodes
               </span>
               <button
                 onClick={copy}
@@ -147,7 +155,7 @@ export default function ShipSection() {
       <Reveal delay={160}>
         <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_1.25fr]">
           <div className="border border-line bg-panel p-5">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut">tool registry · 9 tools the agents can call</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut">tool registry · 11 tools the agents can call</p>
             <div className="mt-4 grid gap-x-8 gap-y-2.5 sm:grid-cols-2">
               {TOOL_REGISTRY.map((t) => (
                 <p key={t.name} className="font-mono text-[11px] leading-relaxed">

@@ -19,7 +19,7 @@ export default function AgentRoster({ agents }: { agents: Record<AgentId, AgentR
     <aside className="space-y-2.5" aria-label="Agent roster">
       <p className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.24em] text-mut">
         Agent roster
-        <span className="text-amber">5 specialists</span>
+        <span className="text-amber">8 specialists</span>
       </p>
       {AGENT_ORDER.map((id, i) => {
         const def = AGENTS[id];

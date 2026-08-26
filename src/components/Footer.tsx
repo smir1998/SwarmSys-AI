@@ -18,8 +18,8 @@ export default function Footer() {
             </span>
           </a>
           <p className="mt-4 max-w-[42ch] font-body text-[13px] leading-relaxed text-mut">
-            A multi-agent AI system running entirely in your browser. Five specialized agents —
-            planner, research, coder, reviewer, reporter — collaborate through one shared memory
+            A multi-agent AI system running entirely in your browser. Eight specialized agents —
+            planner, research, coder, QA, reviewer, security, devops, reporter — collaborate through one shared memory
             store, with tool calls, a human-approval gate and a reviewer patch loop.
           </p>
           <p className="mt-5 font-mono text-[10px] uppercase leading-relaxed tracking-[0.16em] text-mut/70">
@@ -61,7 +61,7 @@ export default function Footer() {
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-[1560px] flex-wrap items-center justify-between gap-4 px-5 py-5 font-mono text-[10px] uppercase tracking-[0.16em] text-mut md:px-8">
           <span>© 2026 SwarmSys AI · a multi-agent orchestration study</span>
-          <span className="hidden md:inline">planner → research∥coder → reviewer↺ → reporter</span>
+          <span className="hidden md:inline">planner → research∥coder → qa → reviewer↺ → security∥devops → reporter</span>
           <a href="#console" className="group flex items-center gap-2 border border-line px-3.5 py-2 transition-all hover:border-amber hover:text-amber">
             Back to console
             <Icon name="up" className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5" />

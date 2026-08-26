@@ -103,7 +103,13 @@ export default function App() {
   const liveCountRef = useRef(0);
 
   const running =
-    phase === "planning" || phase === "approval" || phase === "execution" || phase === "review" || phase === "report";
+    phase === "planning" ||
+    phase === "approval" ||
+    phase === "execution" ||
+    phase === "qa" ||
+    phase === "review" ||
+    phase === "hardening" ||
+    phase === "report";
 
   useEffect(() => {
     runningRef.current = running;
@@ -395,12 +401,13 @@ export default function App() {
               <p className="font-body text-sm leading-relaxed text-mut">
                 One request walks the whole swarm: the <span className="text-planner">planner</span> decomposes it,{" "}
                 <span className="text-research">research</span> and <span className="text-coder">coder</span> execute in
-                parallel — with live web hits and SQL under the hood — the <span className="text-reviewer">reviewer</span>{" "}
-                gates quality with a patch loop, and the <span className="text-reporter">reporter</span> ships the final
-                response.
+                parallel, <span className="text-qa">QA</span> runs the test matrix, the{" "}
+                <span className="text-reviewer">reviewer</span> gates quality, <span className="text-security">security</span>{" "}
+                and <span className="text-devops">devops</span> harden the ship — and the{" "}
+                <span className="text-reporter">reporter</span> assembles the final response.
               </p>
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-mut/70">
-                shared memory · live web · sql · pdf · scheduler · human gate
+                8 agents · hf models · live web · sql · pdf · scheduler · human gate
               </p>
             </div>
           </div>
