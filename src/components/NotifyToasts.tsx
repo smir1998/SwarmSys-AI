@@ -30,7 +30,11 @@ function ToastCard({ t, onDismiss }: { t: ToastMsg; onDismiss: (id: string) => v
 
 export default function NotifyToasts({ toasts, onDismiss }: { toasts: ToastMsg[]; onDismiss: (id: string) => void }) {
   return (
-    <div className="pointer-events-none fixed bottom-5 right-5 z-[90] flex w-[min(370px,92vw)] flex-col gap-2.5" aria-live="polite">
+    <div
+      className="pointer-events-none fixed right-5 z-[90] flex w-[min(370px,92vw)] flex-col gap-2.5"
+      style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
+      aria-live="polite"
+    >
       {toasts.map((t) => (
         <ToastCard key={t.id} t={t} onDismiss={onDismiss} />
       ))}

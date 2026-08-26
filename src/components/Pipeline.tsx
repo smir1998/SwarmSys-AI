@@ -71,7 +71,7 @@ function StageCard({
         </p>
         <span className="truncate font-mono text-[9px] uppercase tracking-[0.12em] text-mut">{rt.meta}</span>
       </div>
-      <div ref={bodyRef} className="overflow-y-auto px-4 py-3" style={{ maxHeight: maxH, minHeight: 76 }}>
+      <div ref={bodyRef} className="overflow-auto px-4 py-3" style={{ maxHeight: maxH, minHeight: 76 }}>
         {lines.length === 0 && !active ? (
           <p className="font-mono text-[11px] text-mut/50">— idle, waiting on upstream —</p>
         ) : (
@@ -150,7 +150,7 @@ export default function Pipeline({
             </span>
           ))}
         </div>
-        <p className="stroke-dim font-display text-4xl font-bold uppercase tracking-tight sm:text-6xl">
+        <p className="stroke-dim font-display text-3xl font-bold uppercase tracking-tight sm:text-5xl">
           Awaiting task
         </p>
         <p className="max-w-md font-mono text-xs leading-relaxed text-mut">
@@ -206,17 +206,17 @@ export default function Pipeline({
               critical-action gate
             </p>
           </div>
-          <div className="flex shrink-0 gap-2.5">
+          <div className="flex w-full shrink-0 gap-2.5 sm:w-auto">
             <button
               onClick={onRevise}
-              className="flex items-center gap-2 border border-amber/50 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-amber transition-all hover:bg-amber/10"
+              className="flex flex-1 touch-manipulation items-center justify-center gap-2 border border-amber/50 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-amber transition-all hover:bg-amber/10 sm:flex-none"
             >
               <Icon name="refresh" className="h-3.5 w-3.5" />
               Revise scope
             </button>
             <button
               onClick={onApprove}
-              className="flex items-center gap-2 bg-amber px-5 py-2.5 font-display text-xs font-bold uppercase tracking-[0.1em] text-[#0a0f12] transition-all hover:bg-ink hover:text-bg"
+              className="flex flex-1 touch-manipulation items-center justify-center gap-2 bg-amber px-5 py-2.5 font-display text-xs font-bold uppercase tracking-[0.1em] text-[#0a0f12] transition-all hover:bg-ink hover:text-bg sm:flex-none"
             >
               <Icon name="check" className="h-3.5 w-3.5" />
               Approve & run

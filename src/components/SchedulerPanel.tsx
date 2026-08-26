@@ -43,7 +43,7 @@ export default function SchedulerPanel({
           onChange={(e) => setTask(e.target.value)}
           placeholder="Recurring task… e.g. sentiment pulse"
           aria-label="Scheduled task description"
-          className="w-full border border-line bg-bg px-3 py-2 font-mono text-[11px] text-ink outline-none transition-colors focus:border-amber"
+          className="w-full border border-line bg-bg px-3 py-2 font-mono text-base text-ink outline-none transition-colors focus:border-amber md:text-[11px]"
         />
         <div className="flex gap-2">
           <select

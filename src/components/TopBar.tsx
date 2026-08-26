@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import type { Operator, Phase, ViewId } from "../lib/types";
 
+export const VIEWS: { id: ViewId; label: string }[] = [
+  { id: "console", label: "Console" },
+  { id: "architecture", label: "Architecture" },
+  { id: "agents", label: "Agents" },
+  { id: "ship", label: "Ship It" },
+];
+
 const PHASE_META: Record<Phase, { label: string; color: string; pulse: boolean }> = {
   idle: { label: "STANDBY", color: "var(--mut)", pulse: false },
   planning: { label: "SWARM RUNNING", color: "var(--amber)", pulse: true },
@@ -13,13 +20,6 @@ const PHASE_META: Record<Phase, { label: string; color: string; pulse: boolean }
   complete: { label: "RUN COMPLETE", color: "var(--c-coder)", pulse: false },
   aborted: { label: "RUN ABORTED", color: "var(--coral)", pulse: false },
 };
-
-export const VIEWS: { id: ViewId; label: string }[] = [
-  { id: "console", label: "Console" },
-  { id: "architecture", label: "Architecture" },
-  { id: "agents", label: "Agents" },
-  { id: "ship", label: "Ship It" },
-];
 
 function Clock() {
   const [now, setNow] = useState(() => new Date());
@@ -62,27 +62,28 @@ export default function TopBar({
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const active = operators.find((o) => o.id === activeId) ?? operators[0];
+  const busy = meta.pulse;
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-bg/85 backdrop-blur-md">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-bg/90 backdrop-blur-md">
       {/* ————— status row ————— */}
-      <div className="mx-auto flex h-14 max-w-[1560px] items-center justify-between gap-4 px-5 md:px-8">
-        <button onClick={() => onView("console")} className="group flex items-center gap-3 text-left">
-          <svg viewBox="0 0 24 24" className="h-6 w-6 text-amber transition-transform duration-300 group-hover:rotate-[18deg]" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <div className="mx-auto flex h-14 max-w-[1560px] items-center justify-between gap-2 px-4 sm:gap-4 sm:px-5 md:px-8">
+        <button onClick={() => onView("console")} className="group flex min-w-0 items-center gap-2.5 text-left sm:gap-3">
+          <svg viewBox="0 0 24 24" className="h-6 w-6 shrink-0 text-amber transition-transform duration-300 group-hover:rotate-[18deg]" fill="none" stroke="currentColor" strokeWidth="1.6">
             <path d="M8 19L12 5l8 14z" />
             <circle cx="12" cy="5" r="2.2" fill="var(--c-research)" stroke="none" />
             <circle cx="8" cy="19" r="2.2" fill="var(--c-coder)" stroke="none" />
             <circle cx="16" cy="19" r="2.2" fill="var(--coral)" stroke="none" />
           </svg>
-          <span className="font-display text-lg font-bold uppercase tracking-[0.08em]">
+          <span className="truncate font-display text-base font-bold uppercase tracking-[0.08em] sm:text-lg">
             SwarmSys<span className="text-amber"> AI</span>
           </span>
-          <span className="hidden font-mono text-[10px] uppercase tracking-[0.22em] text-mut sm:inline">
+          <span className="hidden font-mono text-[10px] uppercase tracking-[0.22em] text-mut lg:inline">
             multi-agent console
           </span>
         </button>
 
-        <div className="flex items-center gap-3 md:gap-5">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3 md:gap-5">
           <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-mut xl:inline">
             ledger: {runCount} run{runCount === 1 ? "" : "s"}
           </span>
@@ -93,13 +94,13 @@ export default function TopBar({
           {/* notifications */}
           <button
             onClick={onToggleNotify}
-            className={`flex items-center gap-2 border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all ${
+            className={`flex touch-manipulation items-center gap-2 border px-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all sm:px-2.5 ${
               notifyOn ? "border-research/60 text-research" : "border-line text-mut hover:border-line2 hover:text-ink"
             }`}
             title="Arm browser notifications for run completions"
           >
             <span className={`inline-block h-2 w-2 rounded-full ${notifyOn ? "led-on bg-research" : "bg-mut/50"}`} />
-            <span className="hidden sm:inline">{notifyOn ? "notify on" : "notify"}</span>
+            <span className="hidden md:inline">{notifyOn ? "notify on" : "notify"}</span>
           </button>
 
           {/* operator seat */}
@@ -109,21 +110,22 @@ export default function TopBar({
             )}
             <button
               onClick={() => setOpen((v) => !v)}
-              className={`flex items-center gap-2 border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all ${
+              className={`flex touch-manipulation items-center gap-1.5 border px-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all sm:gap-2 sm:px-2.5 ${
                 open ? "border-amber text-amber" : "border-line text-mut hover:border-line2 hover:text-ink"
               }`}
               aria-haspopup="menu"
               aria-expanded={open}
+              title="Operator seats — memory & ledger are scoped per seat"
             >
               <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <circle cx="12" cy="8" r="3.4" />
                 <path d="M4.5 20c1.4-3.4 4.2-5 7.5-5s6.1 1.6 7.5 5" />
               </svg>
-              <span className="max-w-[110px] truncate">{active?.name}</span>
+              <span className="hidden max-w-[110px] truncate min-[400px]:inline">{active?.name}</span>
               <span className="text-amber">▾</span>
             </button>
             {open && (
-              <div className="popin absolute right-0 top-full z-50 mt-2 w-60 border border-line bg-panel2 shadow-[0_22px_50px_-18px_rgba(0,0,0,0.9)]" role="menu">
+              <div className="popin absolute right-0 top-full z-50 mt-2 w-[min(240px,calc(100vw-2rem))] border border-line bg-panel2 shadow-[0_22px_50px_-18px_rgba(0,0,0,0.9)]" role="menu">
                 <p className="border-b border-line px-3.5 py-2 font-mono text-[9px] uppercase tracking-[0.2em] text-mut">
                   operator seats · scoped memory
                 </p>
@@ -139,8 +141,8 @@ export default function TopBar({
                       o.id === activeId ? "text-amber" : "text-ink/80"
                     }`}
                   >
-                    {o.name}
-                    {o.id === activeId && <span className="text-[9px] uppercase tracking-[0.14em]">active</span>}
+                    <span className="truncate">{o.name}</span>
+                    {o.id === activeId && <span className="ml-2 shrink-0 text-[9px] uppercase tracking-[0.14em]">active</span>}
                   </button>
                 ))}
                 <div className="flex border-t border-line">
@@ -156,7 +158,7 @@ export default function TopBar({
                     }}
                     placeholder="new operator…"
                     aria-label="New operator name"
-                    className="w-full bg-transparent px-3.5 py-2.5 font-mono text-[11px] text-ink outline-none"
+                    className="w-full bg-transparent px-3.5 py-2.5 font-mono text-base text-ink outline-none md:text-[11px]"
                   />
                   <button
                     onClick={() => {
@@ -175,12 +177,16 @@ export default function TopBar({
             )}
           </div>
 
-          <span className="hidden items-center gap-2 border border-line px-2.5 py-1.5 md:flex">
+          {/* live status — always visible, label on wider screens */}
+          <span className="flex touch-manipulation items-center gap-1.5 border border-line px-2 py-1.5 sm:gap-2 sm:px-2.5">
             <span
               className={`inline-block h-2 w-2 rounded-full ${meta.pulse ? "led-fast" : ""}`}
               style={{ background: meta.color }}
             />
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em]" style={{ color: meta.color }}>
+            <span
+              className="hidden font-mono text-[9px] uppercase tracking-[0.16em] min-[430px]:inline md:text-[10px]"
+              style={{ color: meta.color }}
+            >
               {meta.label}
             </span>
           </span>
@@ -190,34 +196,41 @@ export default function TopBar({
       {/* ————— horizontal view rail ————— */}
       <nav
         aria-label="Console views"
-        className="mx-auto flex max-w-[1560px] items-stretch gap-0.5 overflow-x-auto border-t border-line px-3 md:px-8"
+        className="mx-auto grid max-w-[1560px] grid-cols-4 items-stretch border-t border-line px-1 md:flex md:gap-0.5 md:px-8"
       >
         {VIEWS.map((v, i) => {
           const isActive = v.id === view;
+          const showBusy = v.id === "console" && busy && !isActive;
           return (
             <button
               key={v.id}
               onClick={() => onView(v.id)}
               aria-current={isActive ? "page" : undefined}
-              className={`relative flex shrink-0 items-center gap-2.5 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.18em] transition-colors duration-200 md:px-5 ${
+              className={`relative flex min-w-0 touch-manipulation items-center justify-center gap-1.5 px-1.5 py-2.5 font-mono text-[9px] uppercase tracking-[0.12em] transition-colors duration-200 md:justify-start md:gap-2.5 md:px-5 md:text-[10px] md:tracking-[0.18em] ${
                 isActive ? "text-amber" : "text-mut hover:text-ink"
               }`}
             >
               <span
-                className={`h-1.5 w-1.5 rounded-full transition-colors ${isActive ? "led-on" : ""}`}
+                className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${isActive ? "led-on" : ""}`}
                 style={{ background: isActive ? "var(--amber)" : "var(--line2)" }}
               />
-              <span className="opacity-55">0{i + 1}</span>
-              {v.label}
+              <span className="hidden opacity-55 min-[380px]:inline md:inline">0{i + 1}</span>
+              <span className="truncate">{v.label}</span>
+              {showBusy && (
+                <span
+                  className={`led-fast h-1.5 w-1.5 shrink-0 rounded-full ${phase === "approval" ? "bg-coral" : "bg-amber"}`}
+                  title={phase === "approval" ? "Approval gate waiting on the console" : "Swarm running on the console"}
+                />
+              )}
               <span
-                className={`absolute inset-x-3 bottom-0 h-[2px] origin-left bg-amber transition-transform duration-300 ease-out ${
+                className={`absolute inset-x-2 bottom-0 h-[2px] origin-left bg-amber transition-transform duration-300 ease-out md:inset-x-3 ${
                   isActive ? "scale-x-100" : "scale-x-0"
                 }`}
               />
             </button>
           );
         })}
-        <span className="ml-auto hidden shrink-0 items-center self-center gap-3 pl-4 font-mono text-[9px] uppercase tracking-[0.16em] text-mut/60 md:flex">
+        <span className="ml-auto hidden shrink-0 items-center self-center gap-3 pl-4 font-mono text-[9px] uppercase tracking-[0.16em] text-mut/60 lg:flex">
           <span>keys 1–4 switch view</span>
           <span className="h-3 w-px bg-line2" />
           <span>no scroll — toggle panels</span>

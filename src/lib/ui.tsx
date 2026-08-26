@@ -67,7 +67,7 @@ export function SectionHead({ no, title, desc }: { no: string; title: string; de
       <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
         <div>
           <p className="font-mono text-xs tracking-[0.28em] text-amber">/{no}</p>
-          <h2 className="mt-2 font-display text-4xl font-bold uppercase leading-[0.95] tracking-tight sm:text-5xl lg:text-6xl">
+          <h2 className="mt-2 font-display text-3xl font-bold uppercase leading-[0.95] tracking-tight sm:text-5xl lg:text-6xl">
             {title}
           </h2>
         </div>
