@@ -1,6 +1,6 @@
 import { CSSProperties, ReactNode, useEffect, useRef, useState } from "react";
 
-/* prefers-reduced-motion */
+/* ————— prefers-reduced-motion ————— */
 export function usePRM(): boolean {
   const [prm, setPrm] = useState(
     () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -14,55 +14,26 @@ export function usePRM(): boolean {
   return prm;
 }
 
-/* scramble-decode text effect */
-const SCRAMBLE_CHARS = "#%&§@XKRWMZA4701";
-export function useScramble(text: string, delay = 0): string {
-  const prm = usePRM();
-  const [out, setOut] = useState(prm ? text : "");
+/* ————— ticking clock ————— */
+export function useNow(active: boolean, interval = 500): number {
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    if (prm) {
-      setOut(text);
-      return;
-    }
-    let frame = 0;
-    let id: number;
-    const start = window.setTimeout(() => {
-      id = window.setInterval(() => {
-        frame += 1;
-        const settled = Math.floor((frame - 4) / 2);
-        if (settled >= text.length) {
-          setOut(text);
-          window.clearInterval(id);
-          return;
-        }
-        let s = "";
-        for (let i = 0; i < text.length; i++) {
-          const c = text[i];
-          if (i < settled || c === " ") s += c;
-          else s += SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
-        }
-        setOut(s);
-      }, 28);
-    }, delay);
-    return () => {
-      window.clearTimeout(start);
-      if (id) window.clearInterval(id);
-    };
-  }, [text, delay, prm]);
-  return out;
+    if (!active) return;
+    const id = window.setInterval(() => setNow(Date.now()), interval);
+    return () => window.clearInterval(id);
+  }, [active, interval]);
+  return now;
 }
 
-/* scroll reveal wrapper */
+/* ————— scroll reveal ————— */
 export function Reveal({
   children,
   className = "",
   delay = 0,
-  from = "up",
 }: {
   children: ReactNode;
   className?: string;
   delay?: number;
-  from?: "up" | "left" | "right" | "none";
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -77,103 +48,56 @@ export function Reveal({
           }
         }
       },
-      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" },
+      { threshold: 0.1, rootMargin: "0px 0px -5% 0px" },
     );
     io.observe(el);
     return () => io.disconnect();
   }, []);
-  const vars =
-    from === "left"
-      ? { "--rx": "-34px", "--ry": "0px" }
-      : from === "right"
-        ? { "--rx": "34px", "--ry": "0px" }
-        : from === "none"
-          ? { "--rx": "0px", "--ry": "0px" }
-          : undefined;
   return (
-    <div ref={ref} className={`reveal ${className}`} style={{ transitionDelay: `${delay}ms`, ...vars } as CSSProperties}>
+    <div ref={ref} className={`reveal ${className}`} style={{ transitionDelay: `${delay}ms` } as CSSProperties}>
       {children}
     </div>
   );
 }
 
-/* infinite marquee */
-export function Marquee({
-  children,
-  duration = 30,
-  reverse = false,
-  className = "",
-}: {
-  children: ReactNode;
-  duration?: number;
-  reverse?: boolean;
-  className?: string;
-}) {
+/* ————— section header ————— */
+export function SectionHead({ no, title, desc }: { no: string; title: string; desc?: string }) {
   return (
-    <div className={`overflow-hidden ${className}`}>
-      <div
-        className="marquee-track flex w-max items-center"
-        style={{ animation: `marquee ${duration}s linear infinite`, animationDirection: reverse ? "reverse" : undefined }}
-      >
-        <div className="flex items-center">{children}</div>
-        <div className="flex items-center" aria-hidden="true">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* numbered section header */
-export function SectionHead({
-  no,
-  title,
-  desc,
-}: {
-  no: string;
-  title: string;
-  desc?: string;
-}) {
-  return (
-    <div className="border-t-2 border-ink pt-5">
+    <div className="border-t-2 border-line2 pt-5">
       <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
         <div>
-          <p className="font-mono text-xs tracking-[0.22em] text-acc">
-            ( {no} )
-          </p>
-          <h2 className="mt-2 font-grotesk text-4xl font-black uppercase leading-[0.92] tracking-[-0.03em] sm:text-6xl md:text-7xl">
+          <p className="font-mono text-xs tracking-[0.28em] text-amber">/{no}</p>
+          <h2 className="mt-2 font-display text-4xl font-bold uppercase leading-[0.95] tracking-tight sm:text-5xl lg:text-6xl">
             {title}
           </h2>
         </div>
-        {desc && (
-          <p className="max-w-xs pb-1 font-mono text-xs leading-relaxed text-mut">{desc}</p>
-        )}
+        {desc && <p className="max-w-sm pb-1 font-mono text-xs leading-relaxed text-mut">{desc}</p>}
       </div>
     </div>
   );
 }
 
-/* tiny inline SVG icon set */
+/* ————— inline SVG icon set ————— */
+const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "square" as const };
+
 export function Icon({ name, className = "h-4 w-4" }: { name: string; className?: string }) {
-  const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "square" as const };
   switch (name) {
-    case "bag":
+    case "play":
       return (
         <svg viewBox="0 0 24 24" className={className} {...stroke}>
-          <path d="M5 8h14l-1.2 12H6.2L5 8Z" />
-          <path d="M8.5 8V6.5a3.5 3.5 0 0 1 7 0V8" />
+          <path d="M7 4.5v15l12-7.5L7 4.5Z" />
         </svg>
       );
-    case "arrow":
+    case "stop":
       return (
         <svg viewBox="0 0 24 24" className={className} {...stroke}>
-          <path d="M5 12h13M13 6l6 6-6 6" />
+          <rect x="6" y="6" width="12" height="12" />
         </svg>
       );
-    case "up":
+    case "check":
       return (
         <svg viewBox="0 0 24 24" className={className} {...stroke}>
-          <path d="M12 19V6M6 11l6-6 6 6" />
+          <path d="M4.5 12.5l5 5L19.5 7" />
         </svg>
       );
     case "close":
@@ -189,29 +113,118 @@ export function Icon({ name, className = "h-4 w-4" }: { name: string; className?
           <path d="M5 15V5h10" />
         </svg>
       );
-    case "check":
+    case "download":
       return (
         <svg viewBox="0 0 24 24" className={className} {...stroke}>
-          <path d="M4.5 12.5l5 5L19.5 7" />
+          <path d="M12 4v11M6.5 10.5L12 16l5.5-5.5M4 20h16" />
         </svg>
       );
-    case "dice":
+    case "arrow":
       return (
         <svg viewBox="0 0 24 24" className={className} {...stroke}>
-          <rect x="4" y="4" width="16" height="16" />
-          <circle cx="9" cy="9" r="1" fill="currentColor" stroke="none" />
-          <circle cx="15" cy="15" r="1" fill="currentColor" stroke="none" />
-          <circle cx="15" cy="9" r="1" fill="currentColor" stroke="none" />
-          <circle cx="9" cy="15" r="1" fill="currentColor" stroke="none" />
+          <path d="M5 12h13M13 6l6 6-6 6" />
         </svg>
       );
-    case "asterisk":
+    case "up":
       return (
         <svg viewBox="0 0 24 24" className={className} {...stroke}>
-          <path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9" />
+          <path d="M12 19V6M6 11l6-6 6 6" />
+        </svg>
+      );
+    case "refresh":
+      return (
+        <svg viewBox="0 0 24 24" className={className} {...stroke}>
+          <path d="M20 12a8 8 0 1 1-2.3-5.6M20 3v5h-5" />
+        </svg>
+      );
+    case "terminal":
+      return (
+        <svg viewBox="0 0 24 24" className={className} {...stroke}>
+          <path d="M4 6l6 6-6 6M12 20h8" />
+        </svg>
+      );
+    case "nodes":
+      return (
+        <svg viewBox="0 0 24 24" className={className} {...stroke}>
+          <circle cx="12" cy="5" r="2.4" />
+          <circle cx="5" cy="19" r="2.4" />
+          <circle cx="19" cy="19" r="2.4" />
+          <path d="M10.8 7.1L6.2 16.9M13.2 7.1l4.6 9.8M7.4 19h9.2" />
+        </svg>
+      );
+    case "zap":
+      return (
+        <svg viewBox="0 0 24 24" className={className} {...stroke}>
+          <path d="M13 2 5 13h6l-1 9 9-12h-6l0-8Z" />
         </svg>
       );
     default:
       return null;
   }
+}
+
+/* ————— tiny markdown renderer ————— */
+function inline(text: string, key: number): ReactNode {
+  const parts = text.split("**");
+  return (
+    <span key={key}>
+      {parts.map((p, i) => (i % 2 === 1 ? <strong key={i}>{p}</strong> : <span key={i}>{p}</span>))}
+    </span>
+  );
+}
+
+export function MarkdownLite({ md }: { md: string }) {
+  const out: ReactNode[] = [];
+  let k = 0;
+  let inCode = false;
+  let code: string[] = [];
+  let list: string[] = [];
+
+  const flushList = () => {
+    if (list.length) {
+      out.push(
+        <ul key={k++}>
+          {list.map((li, i) => (
+            <li key={i}>{inline(li, i)}</li>
+          ))}
+        </ul>,
+      );
+      list = [];
+    }
+  };
+  const flushCode = () => {
+    if (code.length) {
+      out.push(<pre key={k++}>{code.join("\n")}</pre>);
+      code = [];
+    }
+  };
+
+  for (const raw of md.split("\n")) {
+    if (raw.startsWith("```")) {
+      if (inCode) {
+        flushCode();
+        inCode = false;
+      } else {
+        flushList();
+        inCode = true;
+      }
+      continue;
+    }
+    if (inCode) {
+      code.push(raw);
+      continue;
+    }
+    if (raw.startsWith("- ")) {
+      list.push(raw.slice(2));
+      continue;
+    }
+    flushList();
+    if (raw.startsWith("# ")) out.push(<h1 key={k++}>{inline(raw.slice(2), 0)}</h1>);
+    else if (raw.startsWith("## ")) out.push(<h2 key={k++}>{raw.slice(3)}</h2>);
+    else if (raw.trim() === "---") out.push(<hr key={k++} />);
+    else if (raw.trim()) out.push(<p key={k++}>{inline(raw, 0)}</p>);
+  }
+  flushList();
+  flushCode();
+  return <div className="md">{out}</div>;
 }

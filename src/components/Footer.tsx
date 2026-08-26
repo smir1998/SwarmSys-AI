@@ -1,81 +1,44 @@
-import { FormEvent, useState } from "react";
-import { FONTS } from "../lib/data";
-import { Icon, Marquee } from "../lib/ui";
+import { AGENTS, AGENT_ORDER } from "../lib/knowledge";
+import { Icon } from "../lib/ui";
 
 export default function Footer() {
-  const [email, setEmail] = useState("");
-  const [subState, setSubState] = useState<"idle" | "done" | "error">("idle");
-
-  const subscribe = (e: FormEvent) => {
-    e.preventDefault();
-    if (!email.includes("@") || email.length < 5) {
-      setSubState("error");
-      return;
-    }
-    setSubState("done");
-  };
-
   return (
-    <footer id="colophon" className="relative overflow-hidden border-t-2 border-ink">
-      {/* giant outline marquee */}
-      <div className="border-b border-line py-6">
-        <Marquee duration={40} reverse>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <span key={i} className="flex items-center">
-              <span className={`px-6 font-grotesk text-7xl font-black uppercase tracking-tight md:text-8xl ${i % 2 ? "stroke-faint" : "text-ink"}`}>
-                Offizin
-              </span>
-              <Icon name="asterisk" className="h-8 w-8 text-acc" />
-            </span>
-          ))}
-        </Marquee>
-      </div>
-
-      <div className="mx-auto grid max-w-[1400px] gap-12 px-5 py-16 md:grid-cols-[1.4fr_1fr_1fr_1.4fr] md:px-10">
+    <footer className="relative border-t-2 border-line2">
+      <div className="mx-auto grid max-w-[1560px] gap-10 px-5 py-14 md:grid-cols-[1.5fr_1fr_1fr] md:px-8">
         <div>
-          <a href="#top" className="flex items-baseline gap-2.5">
-            <span className="inline-block h-4 w-4 translate-y-[-1px] bg-acc" />
-            <span className="font-grotesk text-2xl font-black uppercase tracking-tight">
-              Offizin<span className="align-super text-[10px] font-bold text-mut">®</span>
+          <a href="#console" className="flex items-center gap-3">
+            <svg viewBox="0 0 24 24" className="h-6 w-6 text-amber" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <path d="M8 19L12 5l8 14z" />
+              <circle cx="12" cy="5" r="2.2" fill="var(--c-research)" stroke="none" />
+              <circle cx="8" cy="19" r="2.2" fill="var(--c-coder)" stroke="none" />
+              <circle cx="16" cy="19" r="2.2" fill="var(--coral)" stroke="none" />
+            </svg>
+            <span className="font-display text-lg font-bold uppercase tracking-[0.08em]">
+              Swarm<span className="text-amber">smith</span>
             </span>
           </a>
-          <p className="mt-5 max-w-[36ch] font-grotesk text-sm leading-relaxed text-mut">
-            Independent type foundry in a Kreuzberg courtyard. We draw letters, proof them on
-            paper, and ship them as honest binaries.
+          <p className="mt-4 max-w-[42ch] font-body text-[13px] leading-relaxed text-mut">
+            A multi-agent AI system running entirely in your browser. Five specialized agents —
+            planner, research, coder, reviewer, reporter — collaborate through one shared memory
+            store, with tool calls, a human-approval gate and a reviewer patch loop.
           </p>
-          <address className="mt-6 font-mono text-[11px] not-italic uppercase leading-relaxed tracking-[0.14em] text-mut">
-            Oranienstraße 24 — Hof, 2. OG
-            <br />
-            10999 Berlin, Germany
-          </address>
+          <p className="mt-5 font-mono text-[10px] uppercase leading-relaxed tracking-[0.16em] text-mut/70">
+            no network calls · no API keys · run ledger &amp; long-term memory persist to localStorage
+          </p>
         </div>
 
-        <nav aria-label="Fonts">
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-acc">Fonts</p>
-          <ul className="mt-5 space-y-3">
-            {FONTS.map((f) => (
-              <li key={f.id}>
-                <a href={`#row-${f.id}`} className={`link-rule text-lg font-bold ${f.css}`}>
-                  {f.name}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <nav aria-label="Foundry">
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-acc">Foundry</p>
-          <ul className="mt-5 space-y-3 font-grotesk text-sm font-medium">
+        <nav aria-label="Console sections">
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-amber">Console</p>
+          <ul className="mt-4 space-y-2.5 font-mono text-[12px]">
             {[
-              ["Specimen wall", "#top"],
-              ["Type tester", "#tester"],
-              ["Glyph inspector", "#glyphs"],
-              ["In use", "#inuse"],
-              ["Custom cuts", "mailto:werkstatt@offizin.example"],
+              ["Orchestration console", "#console"],
+              ["Architecture map", "#architecture"],
+              ["Agent dossiers", "#agents"],
+              ["Ship it for real", "#ship"],
             ].map(([label, href]) => (
               <li key={href}>
-                <a href={href} className="link-rule text-mut hover:text-ink">
-                  {label}
+                <a href={href} className="text-mut transition-colors hover:text-amber">
+                  → {label}
                 </a>
               </li>
             ))}
@@ -83,56 +46,25 @@ export default function Footer() {
         </nav>
 
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-acc">Post aus der Werkstatt</p>
-          <p className="mt-5 font-grotesk text-sm leading-relaxed text-mut">
-            A letter every few months — new releases, kerning confessions, specimen PDFs. No noise.
-          </p>
-          {subState === "done" ? (
-            <p className="mt-6 flex items-center gap-2.5 border border-acc px-4 py-3.5 font-mono text-[11px] uppercase tracking-[0.14em] text-acc [animation:pop_0.4s_ease]">
-              <Icon name="check" className="h-4 w-4" /> Danke — check your inbox.
-            </p>
-          ) : (
-            <form onSubmit={subscribe} className="mt-6">
-              <div className="flex border-2 border-ink transition-colors focus-within:border-acc">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (subState === "error") setSubState("idle");
-                  }}
-                  placeholder="du@beispiel.de"
-                  aria-label="Email address"
-                  className="w-full bg-transparent px-4 py-3 font-mono text-xs text-ink outline-none placeholder:text-mut/60"
-                />
-                <button
-                  type="submit"
-                  className="shrink-0 bg-ink px-5 font-mono text-[11px] uppercase tracking-[0.16em] text-bg transition-colors hover:bg-acc hover:text-accink"
-                >
-                  Send
-                </button>
-              </div>
-              {subState === "error" && (
-                <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-acc">
-                  Hmm — that address doesn't look typeset.
-                </p>
-              )}
-            </form>
-          )}
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-amber">The swarm</p>
+          <ul className="mt-4 space-y-2.5">
+            {AGENT_ORDER.map((id, i) => (
+              <li key={id} className="flex items-center gap-2.5 font-mono text-[12px] text-mut">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: AGENTS[id].color }} />
+                <span className="text-ink/75">A{i + 1} · {AGENTS[id].name}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 
       <div className="border-t border-line">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-4 px-5 py-6 font-mono text-[10px] uppercase tracking-[0.18em] text-mut md:px-10">
-          <span>© 2026 Offizin Type Foundry GmbH</span>
-          <span className="hidden md:inline">Set in Spree Grotesk &amp; Meridian Antiqua</span>
-          <a
-            href="#top"
-            className="group flex items-center gap-2 border border-line px-4 py-2.5 transition-all hover:border-acc hover:text-acc"
-          >
-            Back to top
-            <Icon name="up" className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-1" />
+        <div className="mx-auto flex max-w-[1560px] flex-wrap items-center justify-between gap-4 px-5 py-5 font-mono text-[10px] uppercase tracking-[0.16em] text-mut md:px-8">
+          <span>© 2026 Swarmsmith · a multi-agent orchestration study</span>
+          <span className="hidden md:inline">planner → research∥coder → reviewer↺ → reporter</span>
+          <a href="#console" className="group flex items-center gap-2 border border-line px-3.5 py-2 transition-all hover:border-amber hover:text-amber">
+            Back to console
+            <Icon name="up" className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5" />
           </a>
         </div>
       </div>
