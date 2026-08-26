@@ -158,6 +158,11 @@ export function triggerDownload(filename: string, content: string, mime = "text/
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  a.style.display = "none";
+  document.body.appendChild(a);
   a.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+  window.setTimeout(() => {
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 4000);
 }

@@ -82,8 +82,13 @@ async function zipAndDownload(files: Record<string, string>, name: string) {
   const a = document.createElement("a");
   a.href = url;
   a.download = name;
+  a.style.display = "none";
+  document.body.appendChild(a);
   a.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+  window.setTimeout(() => {
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 4000);
 }
 
 export function downloadSource(): Promise<void> {
