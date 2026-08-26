@@ -39,6 +39,7 @@ import type {
   Subtask,
   ToastMsg,
   ToolCall,
+  ViewId,
 } from "./lib/types";
 import { usePRM } from "./lib/ui";
 
@@ -103,7 +104,13 @@ export default function App() {
   const liveCountRef = useRef(0);
 
   const running =
-    phase === "planning" || phase === "approval" || phase === "execution" || phase === "review" || phase === "report";
+    phase === "planning" ||
+    phase === "approval" ||
+    phase === "execution" ||
+    phase === "qa" ||
+    phase === "review" ||
+    phase === "hardening" ||
+    phase === "report";
 
   useEffect(() => {
     runningRef.current = running;
@@ -117,6 +124,26 @@ export default function App() {
     setToasts((prev) => [...prev.slice(-3), { id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, kind, title, body }]);
   }, []);
   const dismissToast = useCallback((id: string) => setToasts((prev) => prev.filter((t) => t.id !== id)), []);
+
+  /* ————— horizontal view switching (no long scroll) ————— */
+  const [view, setView] = useState<ViewId>("console");
+  const switchView = useCallback(
+    (v: ViewId) => {
+      setView(v);
+      window.scrollTo({ top: 0, behavior: prm ? "auto" : "smooth" });
+    },
+    [prm],
+  );
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+      const map: Record<string, ViewId> = { "1": "console", "2": "architecture", "3": "agents", "4": "ship" };
+      if (map[e.key]) switchView(map[e.key]);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [switchView]);
 
   const toggleNotify = useCallback(async () => {
     if (!notifyOn) {
@@ -331,9 +358,9 @@ export default function App() {
       setSubtasks([]);
       setMemory([]);
       setTools([]);
-      document.getElementById("console")?.scrollIntoView({ behavior: prm ? "auto" : "smooth", block: "start" });
+      switchView("console");
     },
-    [prm],
+    [switchView],
   );
 
   const copyReport = useCallback(async () => {
@@ -371,6 +398,8 @@ export default function App() {
       <TopBar
         phase={phase}
         runCount={ledger.length}
+        view={view}
+        onView={switchView}
         operators={operators}
         activeId={activeId}
         onSwitch={switchOp}
@@ -380,8 +409,10 @@ export default function App() {
       />
 
       <main className="relative z-10">
+        <div key={view} className="viewin">
         {/* ————— 00 · the orchestration console ————— */}
-        <section id="console" className="mx-auto max-w-[1560px] scroll-mt-20 px-5 pb-8 pt-24 md:px-8 md:pt-28">
+        {view === "console" && (
+        <section id="console" className="mx-auto max-w-[1560px] px-5 pb-8 pt-[7.5rem] md:px-8 md:pt-[8rem]">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-x-10 gap-y-4 border-t-2 border-line2 pt-5">
             <div>
               <p className="font-mono text-xs tracking-[0.28em] text-amber">/00</p>
@@ -395,12 +426,13 @@ export default function App() {
               <p className="font-body text-sm leading-relaxed text-mut">
                 One request walks the whole swarm: the <span className="text-planner">planner</span> decomposes it,{" "}
                 <span className="text-research">research</span> and <span className="text-coder">coder</span> execute in
-                parallel — with live web hits and SQL under the hood — the <span className="text-reviewer">reviewer</span>{" "}
-                gates quality with a patch loop, and the <span className="text-reporter">reporter</span> ships the final
-                response.
+                parallel, <span className="text-qa">QA</span> runs the test matrix, the{" "}
+                <span className="text-reviewer">reviewer</span> gates quality, <span className="text-security">security</span>{" "}
+                and <span className="text-devops">devops</span> harden the ship — and the{" "}
+                <span className="text-reporter">reporter</span> assembles the final response.
               </p>
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-mut/70">
-                shared memory · live web · sql · pdf · scheduler · human gate
+                8 agents · hf models · live web · sql · pdf · scheduler · human gate
               </p>
             </div>
           </div>
@@ -475,14 +507,16 @@ export default function App() {
             </div>
           </div>
         </section>
+        )}
 
-        {/* ————— docs sections ————— */}
-        <ArchitectureSection />
-        <DossiersSection />
-        <ShipSection />
+        {/* ————— toggled views ————— */}
+        {view === "architecture" && <ArchitectureSection />}
+        {view === "agents" && <DossiersSection />}
+        {view === "ship" && <ShipSection />}
+        </div>
       </main>
 
-      <Footer />
+      <Footer onView={switchView} view={view} />
       <NotifyToasts toasts={toasts} onDismiss={dismissToast} />
     </div>
   );

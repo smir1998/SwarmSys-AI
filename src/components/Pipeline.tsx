@@ -155,10 +155,11 @@ export default function Pipeline({
         </p>
         <p className="max-w-md font-mono text-xs leading-relaxed text-mut">
           Feed the swarm a goal above. The planner decomposes it, research and coder execute in
-          parallel, the reviewer gates quality, and the reporter ships the final response.
+          parallel, QA runs the test matrix, the reviewer gates quality, security and devops harden
+          the ship — and the reporter assembles the final response.
         </p>
         <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-mut/60">
-          plan → approve → exec ∥ → review ↺ → report
+          plan → approve → exec ∥ → qa → review ↺ → harden ∥ → report
         </p>
       </div>
     );

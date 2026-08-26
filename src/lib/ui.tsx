@@ -164,11 +164,24 @@ export function Icon({ name, className = "h-4 w-4" }: { name: string; className?
 }
 
 /* ————— tiny markdown renderer ————— */
-function inline(text: string, key: number): ReactNode {
+function bold(text: string): ReactNode {
   const parts = text.split("**");
+  return <>{parts.map((p, i) => (i % 2 === 1 ? <strong key={i}>{p}</strong> : <span key={i}>{p}</span>))}</>;
+}
+
+function inline(text: string, key: number): ReactNode {
+  const parts = text.split("`");
   return (
     <span key={key}>
-      {parts.map((p, i) => (i % 2 === 1 ? <strong key={i}>{p}</strong> : <span key={i}>{p}</span>))}
+      {parts.map((p, i) =>
+        i % 2 === 1 ? (
+          <code key={i} className="border border-line bg-bg px-1 py-px font-mono text-[0.92em] text-amber">
+            {p}
+          </code>
+        ) : (
+          <span key={i}>{bold(p)}</span>
+        ),
+      )}
     </span>
   );
 }

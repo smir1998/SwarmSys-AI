@@ -9,7 +9,7 @@ export default function DossiersSection() {
 
   return (
     <section id="agents" className="relative border-y border-line bg-panel/40">
-      <div className="mx-auto max-w-[1560px] px-5 py-20 md:px-8 md:py-28">
+      <div className="mx-auto max-w-[1560px] px-5 pb-20 pt-[7.5rem] md:px-8 md:pb-28 md:pt-[8rem]">
         <SectionHead
           no="02"
           title="Agent Dossiers"
@@ -19,7 +19,7 @@ export default function DossiersSection() {
         <div className="mt-12 grid gap-10 lg:grid-cols-[340px_1fr] lg:gap-14">
           {/* index */}
           <Reveal>
-            <div className="lg:sticky lg:top-24">
+            <div className="lg:sticky lg:top-[7.5rem]">
               <div className="border-t-2 border-line2">
                 {AGENT_ORDER.map((id, i) => {
                   const a = AGENTS[id];
@@ -49,7 +49,7 @@ export default function DossiersSection() {
                 })}
               </div>
               <p className="mt-5 font-mono text-[10px] uppercase leading-relaxed tracking-[0.18em] text-mut">
-                specialization beats generalization — five narrow agents out-debate one wide one
+                specialization beats generalization — eight narrow agents out-debate one wide one
               </p>
             </div>
           </Reveal>
@@ -61,7 +61,7 @@ export default function DossiersSection() {
                 <h3 className="font-display text-3xl font-bold uppercase tracking-tight" style={{ color: def.color }}>
                   {def.name}
                 </h3>
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-mut">agent 0{AGENT_ORDER.indexOf(sel) + 1} of 05</p>
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-mut">agent 0{AGENT_ORDER.indexOf(sel) + 1} of 08</p>
               </div>
               <p className="mt-3 max-w-2xl font-body text-sm leading-relaxed text-ink/80">{def.role}</p>
 
