@@ -137,6 +137,18 @@ export function saveSchedules(list: Schedule[]) {
   safeSet(SCHED_KEY, JSON.stringify(list));
 }
 
+/* ————— ship checklist ————— */
+
+const SHIP_KEY = "swarmsys.shipcheck.v1";
+
+export function loadShipCheck(): string[] {
+  return safeParse<string[]>(safeGet(SHIP_KEY), []);
+}
+
+export function saveShipCheck(done: string[]) {
+  safeSet(SHIP_KEY, JSON.stringify(done));
+}
+
 /* ————— misc ————— */
 
 export function timeAgo(ts: number): string {

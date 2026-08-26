@@ -84,7 +84,7 @@ A four-panel interface — toggle horizontally, never scroll past everything:
 | **01 Console** | Task input, model selector, toggle switches, 8-agent roster, live pipeline, memory/tools/ledger rail, scheduler |
 | **02 Architecture** | The animated 8-node orchestration DAG with both fan-outs and the patch loop |
 | **03 Agents** | Dossiers: system prompt, responsibilities, tool belt and memory contract for each specialist |
-| **04 Ship it** | The advanced-features manifest, project tree, and the equivalent LangGraph `graph.py` |
+| **04 Ship it** | A working exit ramp: download the complete source `.zip` (30 files, buildable as-is) and the deploy pack (vercel.json, netlify.toml, render.yaml, Dockerfile + nginx, Dockerfile.api + requirements), copy-ready deploy commands for six targets, a persisted ship checklist, plus the LangGraph `graph.py` port |
 
 Keyboard: `1`–`4` switch panels. Toggles: **auto-approve** (skip the gate), **live web** (real API evidence).
 
@@ -128,6 +128,8 @@ src/
     ├── web.ts                 # live Wikipedia / GitHub / HF hub / OSV.dev clients
     ├── sqlite.ts              # embedded SQL engine
     ├── pdf.ts                 # client-side report typesetting
+    ├── shipkit.ts             # deploy manifests, targets, ship checklist
+    ├── archive.ts             # lazy source-archive builder (?raw + jszip)
     ├── store.ts               # operator-scoped localStorage (ledger, LTM, schedules)
     ├── types.ts               # shared contracts (agents, phases, records, views)
     └── ui.tsx                 # Reveal, MarkdownLite, icon set, motion hooks
