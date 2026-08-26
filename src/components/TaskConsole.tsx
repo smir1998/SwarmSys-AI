@@ -1,4 +1,4 @@
-import { SAMPLE_TASKS } from "../lib/knowledge";
+import { HF_MODELS, SAMPLE_TASKS } from "../lib/knowledge";
 import type { Phase } from "../lib/types";
 import { Icon } from "../lib/ui";
 
@@ -12,6 +12,8 @@ export default function TaskConsole({
   setAutoApprove,
   liveWeb,
   setLiveWeb,
+  modelId,
+  setModelId,
   phase,
 }: {
   task: string;
@@ -23,6 +25,8 @@ export default function TaskConsole({
   setAutoApprove: (v: boolean) => void;
   liveWeb: boolean;
   setLiveWeb: (v: boolean) => void;
+  modelId: string;
+  setModelId: (v: string) => void;
   phase: Phase;
 }) {
   const canRun = task.trim().length > 0 && !running;
@@ -106,7 +110,7 @@ export default function TaskConsole({
             onClick={() => setLiveWeb(!liveWeb)}
             role="switch"
             aria-checked={liveWeb}
-            title="Research agent queries live Wikipedia + GitHub APIs"
+            title="Agents query live Wikipedia, GitHub, HF hub and OSV.dev"
             className={`flex h-[46px] items-center gap-2.5 border px-3.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all ${
               liveWeb
                 ? "border-research/60 bg-research/10 text-research"
@@ -125,6 +129,30 @@ export default function TaskConsole({
             live web
           </button>
         </div>
+      </div>
+
+      {/* Hugging Face model selector */}
+      <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-mut">hf model:</span>
+        {HF_MODELS.map((m) => {
+          const active = m.id === modelId;
+          return (
+            <button
+              key={m.id}
+              onClick={() => setModelId(m.id)}
+              disabled={running}
+              title={`${m.id} · ${m.ctx} context · quality ×${m.quality} · speed ×${m.speed}`}
+              className={`border px-2.5 py-1 font-mono text-[10px] transition-all duration-200 disabled:opacity-40 ${
+                active
+                  ? "border-amber bg-amber/10 text-amber"
+                  : "border-line text-mut hover:border-line2 hover:text-ink"
+              }`}
+            >
+              {m.label}
+              <span className={`ml-1.5 ${active ? "text-amber/70" : "text-mut/60"}`}>{m.params}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">

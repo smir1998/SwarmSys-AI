@@ -232,9 +232,16 @@ export default function Pipeline({
         <StageCard agent="coder" lines={stages.coder} rt={agents.coder} maxH={300} />
       </div>
 
-      <Connector label="fan-in" />
+      <Connector label="fan-in · test gate" />
+      <StageCard agent="qa" lines={stages.qa} rt={agents.qa} maxH={230} />
+      <Connector label="matrix green" />
       <StageCard agent="reviewer" lines={stages.reviewer} rt={agents.reviewer} maxH={250} />
-      <Connector label="cleared" />
+      <Connector label="cleared · hardening fan-out" />
+      <div className="grid gap-3 md:grid-cols-2">
+        <StageCard agent="security" lines={stages.security} rt={agents.security} maxH={230} />
+        <StageCard agent="devops" lines={stages.devops} rt={agents.devops} maxH={230} />
+      </div>
+      <Connector label="contracts sealed" />
       <StageCard agent="reporter" lines={stages.reporter} rt={agents.reporter} maxH={190} />
 
       {/* final response */}

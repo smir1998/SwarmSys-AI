@@ -55,6 +55,19 @@ export const AGENTS: Record<AgentId, AgentDef> = {
     writes: ["code.artifact", "code.tests"],
     sample: "code.artifact = main.py (214 lines) + 11 passing tests",
   },
+  qa: {
+    id: "qa",
+    name: "QA",
+    role: "Runs the full test matrix — unit, edge and property cases — and measures coverage before anything reaches review.",
+    color: "var(--c-qa)",
+    tools: ["python_exec", "code_lint"],
+    prompt:
+      "You are the QA agent. Execute the whole test matrix: unit, edge and property cases. Measure coverage, run mutation testing, and document every failure precisely. You break things in here so users never break them out there.",
+    responsibilities: ["Run unit + edge matrix", "Measure coverage & mutation score", "Document failure modes"],
+    reads: ["code.artifact", "code.tests"],
+    writes: ["qa.coverage", "qa.edge_cases"],
+    sample: "qa.coverage = 92% · 41 cases · 11/12 mutants killed",
+  },
   reviewer: {
     id: "reviewer",
     name: "Reviewer",
@@ -67,6 +80,32 @@ export const AGENTS: Record<AgentId, AgentDef> = {
     reads: ["code.artifact", "code.tests", "research.stack"],
     writes: ["review.score", "review.flags"],
     sample: "review.score = 93 · verdict: ship",
+  },
+  security: {
+    id: "security",
+    name: "Security",
+    role: "Audits the artifact for injection surface, secrets and dependency CVEs via the live OSV.dev feed. Critical findings block the ship.",
+    color: "var(--c-security)",
+    tools: ["code_lint", "osv_scan", "web_search"],
+    prompt:
+      "You are the SECURITY agent. Audit for injection surface, hardcoded secrets, unsafe deserialization and known CVEs — query the live OSV.dev advisory feed when enabled. Critical findings block shipping; mitigations go into the report.",
+    responsibilities: ["SAST: secrets & injection scan", "Dependency CVE lookup (OSV.dev)", "OWASP risk annotations"],
+    reads: ["code.artifact", "research.stack"],
+    writes: ["security.findings", "security.verdict"],
+    sample: "security.verdict = medium · 2 findings · 0 blockers",
+  },
+  devops: {
+    id: "devops",
+    name: "DevOps",
+    role: "Packages the solution for production: two-stage Dockerfile, CI workflow, health checks and a rollback plan the reporter can quote.",
+    color: "var(--c-devops)",
+    tools: ["file_io", "python_exec"],
+    prompt:
+      "You are the DEVOPS agent. Package for production: write the Dockerfile, the CI workflow and the rollback plan. Nothing ships without a deployment contract — image, pipeline stages, artifact pinning.",
+    responsibilities: ["Dockerfile (two-stage build)", "CI workflow + quality gates", "Rollback & artifact pinning"],
+    reads: ["code.artifact", "review.score"],
+    writes: ["deploy.dockerfile", "deploy.ci", "deploy.rollback"],
+    sample: "deploy.contract = docker + 3-stage CI + sha-pinned rollback",
   },
   reporter: {
     id: "reporter",
@@ -83,13 +122,24 @@ export const AGENTS: Record<AgentId, AgentDef> = {
   },
 };
 
-export const AGENT_ORDER: AgentId[] = ["planner", "research", "coder", "reviewer", "reporter"];
+export const AGENT_ORDER: AgentId[] = [
+  "planner",
+  "research",
+  "coder",
+  "qa",
+  "reviewer",
+  "security",
+  "devops",
+  "reporter",
+];
 
 /* ————— tool registry ————— */
 
 export const TOOL_REGISTRY = [
   { name: "web_search", desc: "live Wikipedia search" },
   { name: "github_repos", desc: "live prior-art repository scan" },
+  { name: "hf_registry", desc: "live Hugging Face hub metadata" },
+  { name: "osv_scan", desc: "live OSV.dev CVE advisory feed" },
   { name: "knowledge_base", desc: "curated offline facts" },
   { name: "python_exec", desc: "sandboxed interpreter" },
   { name: "sql_query", desc: "embedded ledger database" },
@@ -97,6 +147,28 @@ export const TOOL_REGISTRY = [
   { name: "vector_db", desc: "similarity retrieval" },
   { name: "file_io", desc: "workspace filesystem" },
   { name: "pdf_export", desc: "client-side PDF writer" },
+];
+
+/* ————— Hugging Face model registry —————
+   quality/speed factors shape the simulated run; metadata is verified
+   against the live hub API (GET /api/models/:id) when the web is on. */
+
+export interface ModelDef {
+  id: string;
+  label: string;
+  params: string;
+  ctx: string;
+  quality: number;
+  speed: number;
+  tag: string;
+}
+
+export const HF_MODELS: ModelDef[] = [
+  { id: "meta-llama/Llama-3.1-8B-Instruct", label: "Llama 3.1 8B", params: "8B", ctx: "128k", quality: 1.0, speed: 1.0, tag: "general" },
+  { id: "Qwen/Qwen2.5-Coder-7B-Instruct", label: "Qwen2.5 Coder 7B", params: "7B", ctx: "128k", quality: 1.06, speed: 1.05, tag: "code" },
+  { id: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B", label: "DeepSeek R1 7B", params: "7B", ctx: "128k", quality: 1.08, speed: 0.82, tag: "reasoning" },
+  { id: "mistralai/Mistral-7B-Instruct-v0.3", label: "Mistral 7B v0.3", params: "7B", ctx: "32k", quality: 0.97, speed: 1.12, tag: "general" },
+  { id: "microsoft/Phi-3.5-mini-instruct", label: "Phi-3.5 mini", params: "3.8B", ctx: "128k", quality: 0.92, speed: 1.3, tag: "edge" },
 ];
 
 export const SAMPLE_TASKS = [
@@ -135,6 +207,21 @@ export interface Domain {
     flags: string[];
     patch: string[];
     pass: string[];
+  };
+  qa: {
+    coverage: number;
+    cases: number;
+    edges: string[];
+  };
+  security: {
+    findings: string[];
+    sev: "clear" | "low" | "medium";
+    pkg: string;
+  };
+  devops: {
+    image: string;
+    ci: string[];
+    rollback: string;
   };
   deployment: string[];
   risks: string[];
@@ -249,6 +336,21 @@ export const DOMAINS: Domain[] = [
       patch: ["add fit() → artifact v1.0.0 + sha256", "hoist threshold into a config constant"],
       pass: ["typed API, docstrings on every public symbol", "12/12 tests green · 0.42s wall", "FP-rate surfaced in the validation report", "stratified split — no holdout leakage"],
     },
+    qa: {
+      coverage: 94,
+      cases: 41,
+      edges: ["empty body", "unicode subject line", "10 MB attachment header", "ham misfiled in spam folder"],
+    },
+    security: {
+      findings: ["pickle artifact load → swap to joblib + sha256 verify", "no auth on /classify — add API key middleware"],
+      sev: "medium",
+      pkg: "scikit-learn",
+    },
+    devops: {
+      image: "python:3.12-slim",
+      ci: ["ruff + pytest on push", "artifact signed with sha256", "deploy on tag"],
+      rollback: "blue/green — previous artifact pinned by sha",
+    },
     deployment: [
       "1 · pip install -r requirements.txt",
       "2 · python -m spam_detector.train --corpus enron",
@@ -285,7 +387,7 @@ export const DOMAINS: Domain[] = [
         "Retrieval-first beats pure generation: ground every answer in a FAQ chunk, cite the source.",
         "Confidence below 0.62 should escalate to a human — measured, not guessed.",
         "Keep session state in Redis with a 30-minute TTL; never in the LLM context alone.",
-        "A small hosted model outperforms a large local one below 200 ms p95 at this scale.",
+        "Embeddings: BAAI/bge-small-en-v1.5 from the HF hub — 33M params, 384-dim, runs locally.",
       ],
       code: PY_HEADER.concat([
         "",
@@ -344,6 +446,21 @@ export const DOMAINS: Domain[] = [
       patch: ["expire sessions after 30 min (cache.expire)", "slowapi: 30 req/min per session"],
       pass: ["grounding citations on every reply", "escalation threshold matches research contract", "async handlers — p95 headroom intact", "9/9 tests green · 0.38s wall"],
     },
+    qa: {
+      coverage: 92,
+      cases: 33,
+      edges: ["empty turn", "2k-token input", "prompt-injection probe", "emoji-only message"],
+    },
+    security: {
+      findings: ["prompt injection via customer text — allow-list intents", "PII redaction before logging"],
+      sev: "medium",
+      pkg: "fastapi",
+    },
+    devops: {
+      image: "python:3.12-slim",
+      ci: ["unit + contract tests", "canary 10% → full rollout"],
+      rollback: "canary auto-reverts on CSAT drop",
+    },
     deployment: [
       "1 · export OPENAI_API_KEY=sk-…",
       "2 · uvicorn support_bot:app --workers 2",
@@ -380,7 +497,7 @@ export const DOMAINS: Domain[] = [
         "800-char chunks with 100-char overlap beat 512/2048 variants on recall@5 for this corpus shape.",
         "all-MiniLM-L6-v2 embeds locally at ~900 chunks/s — no API dependency.",
         "Hybrid retrieval (BM25 + dense) lifts recall@5 by 6 points on keyword-heavy queries.",
-        "Always return chunk IDs so answers can be audited against sources.",
+        "Multilingual upgrade path: BAAI/bge-m3 on the HF hub — same pipeline, 100+ languages.",
       ],
       code: PY_HEADER.concat([
         "",
@@ -430,6 +547,21 @@ export const DOMAINS: Domain[] = [
       patch: ["hash-based chunk dedupe before insert", "add BM25 leg + reciprocal rank fusion"],
       pass: ["citation contract enforced by test", "chunking matches research.chunking exactly", "embeddings local — no API key on the hot path", "10/10 tests green · 0.51s wall"],
     },
+    qa: {
+      coverage: 91,
+      cases: 38,
+      edges: ["PDF with tables", "non-utf8 source", "zero-hit query", "12k-char document"],
+    },
+    security: {
+      findings: ["chunk ids must be validated before citation", "collection-level ACL on the vector store"],
+      sev: "low",
+      pkg: "chromadb",
+    },
+    devops: {
+      image: "python:3.12-slim",
+      ci: ["retrieval eval on every index build", "nightly reindex job"],
+      rollback: "keep the last two index snapshots",
+    },
     deployment: [
       "1 · python rag_assistant.py ingest ./docs",
       "2 · uvicorn api:app  →  POST /ask",
@@ -463,7 +595,7 @@ export const DOMAINS: Domain[] = [
         ["research.model", "distilBERT fine-tune: F1 0.91 vs lexicon 0.74"],
       ],
       notes: [
-        "Fine-tuned distilBERT-sst2 reaches macro-F1 0.91 — the lexicon baseline tops out at 0.74.",
+        "distilbert-base-uncased-finetuned-sst-2-english (HF hub) reaches macro-F1 0.91 — lexicon baselines top out at 0.74.",
         "Negation handling ('not bad') is where lexicon methods bleed the most.",
         "Track PSI monthly; review language drifts and a 0.2 PSI means retrain.",
         "Dashboards lie by default: always show the confidence distribution, not just the mean.",
@@ -521,6 +653,21 @@ export const DOMAINS: Domain[] = [
       flags: ["CSV read assumes utf-8 — client exports are cp1252", "confidence histogram missing from dashboard"],
       patch: ["encoding fallback: utf-8 → cp1252 → latin-1", "add st.plotly_chart(confidence_hist(df))"],
       pass: ["model cached per worker — cold start once", "signed intensity enables honest trend lines", "batch_size + truncation bound memory", "8/8 tests green · 0.35s wall"],
+    },
+    qa: {
+      coverage: 90,
+      cases: 29,
+      edges: ["empty review", "mixed-language text", "5k-char review", "all-neutral batch"],
+    },
+    security: {
+      findings: ["CSV injection on export (=cmd cells)", "file-upload size cap missing"],
+      sev: "medium",
+      pkg: "transformers",
+    },
+    devops: {
+      image: "python:3.12-slim (CUDA-free)",
+      ci: ["model eval gate: macro-F1 ≥ 0.88", "streamlit cloud deploy"],
+      rollback: "pin the model revision sha",
     },
     deployment: [
       "1 · streamlit run sentiment_board.py",
@@ -618,6 +765,21 @@ export const DOMAINS: Domain[] = [
       patch: ["wrap fetch in tenacity: 3 retries, exp backoff", "log skipped duplicates with their URL"],
       pass: ["robots.txt delay hardcoded & tested", "SHA-1 dedupe verified at 11% on sample", "schema violations raise, never store junk", "7/7 tests green · 0.29s wall"],
     },
+    qa: {
+      coverage: 96,
+      cases: 24,
+      edges: ["404 page", "connection timeout", "non-utf8 body", "empty sitemap"],
+    },
+    security: {
+      findings: ["SSRF guard: allow-list hostnames", "rate-limit state file permissions"],
+      sev: "low",
+      pkg: "requests",
+    },
+    devops: {
+      image: "python:3.12-slim",
+      ci: ["schema contract tests", "nightly cron + alert on <95% parse"],
+      rollback: "sqlite snapshot before each run",
+    },
     deployment: [
       "1 · python news_crawler.py --sitemap https://…/sitemap.xml",
       "2 · cron: nightly at 03:00 (off-peak, polite)",
@@ -708,6 +870,21 @@ export const DOMAINS: Domain[] = [
       patch: ["pass promos into backtest() explicitly", "sMAPE fallback for zero-demand SKUs"],
       pass: ["stockout censoring implemented as researched", "rolling-origin backtest — no leakage", "multiplicative promo encoding matches research", "9/9 tests green · 0.44s wall"],
     },
+    qa: {
+      coverage: 93,
+      cases: 31,
+      edges: ["zero-demand SKU", "promo on a holiday", "5-week short history", "DST transition week"],
+    },
+    security: {
+      findings: ["input validation on the sku parameter", "signed artifact store"],
+      sev: "clear",
+      pkg: "prophet",
+    },
+    devops: {
+      image: "python:3.12-slim",
+      ci: ["backtest gate: MAPE ≤ 15%", "weekly retrain job"],
+      rollback: "keep four weekly model versions",
+    },
     deployment: [
       "1 · python demand_forecast.py --history sales.csv",
       "2 · serve via FastAPI: GET /forecast?sku=…&weeks=8",
@@ -758,7 +935,7 @@ function genericDomain(task: string): Domain {
       notes: [
         "No curated domain matched — the research agent fell back to first principles and live web evidence.",
         "Prefer boring technology: stdlib first, one dependency per missing capability.",
-        "Define done before coding: acceptance criteria are the reviewer's checklist.",
+        "Reasoning leg: microsoft/Phi-3.5-mini-instruct on the HF hub covers it at 3.8B params.",
       ],
       code: PY_HEADER.concat([
         "",
@@ -804,6 +981,21 @@ function genericDomain(task: string): Domain {
       flags: ["error messages lack input context", "no CLI entry point"],
       patch: ["include filename + row index in errors", "add argparse main guarded by __name__"],
       pass: ["typed envelope — no raw dicts escape", "stdlib-only footprint", "6/6 tests green · 0.21s wall"],
+    },
+    qa: {
+      coverage: 88,
+      cases: 18,
+      edges: ["empty file", "malformed JSON", "huge input", "nested rows"],
+    },
+    security: {
+      findings: ["validate the input schema strictly", "no shell escapes in paths"],
+      sev: "low",
+      pkg: "fastapi",
+    },
+    devops: {
+      image: "python:3.12-slim",
+      ci: ["pytest on push", "structured JSON logs to stdout"],
+      rollback: "version tag per release",
     },
     deployment: ["1 · python solution.py input.json", "2 · wrap in FastAPI when an interface is needed", "3 · log structured JSON to stdout"],
     risks: ["underspecified goal — acceptance criteria are assumptions, confirm them", "scope creep: ship the minimal version first"],

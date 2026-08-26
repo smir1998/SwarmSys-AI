@@ -11,7 +11,7 @@ import ShipSection from "./components/ShipSection";
 import TaskConsole from "./components/TaskConsole";
 import TopBar from "./components/TopBar";
 import { Orchestrator } from "./lib/engine";
-import { detectDomain } from "./lib/knowledge";
+import { HF_MODELS, detectDomain } from "./lib/knowledge";
 import {
   addOperator,
   clearLtm,
@@ -46,7 +46,10 @@ const IDLE_AGENTS: Record<AgentId, AgentRuntime> = {
   planner: { status: "idle", startedAt: 0, meta: "" },
   research: { status: "idle", startedAt: 0, meta: "" },
   coder: { status: "idle", startedAt: 0, meta: "" },
+  qa: { status: "idle", startedAt: 0, meta: "" },
   reviewer: { status: "idle", startedAt: 0, meta: "" },
+  security: { status: "idle", startedAt: 0, meta: "" },
+  devops: { status: "idle", startedAt: 0, meta: "" },
   reporter: { status: "idle", startedAt: 0, meta: "" },
 };
 
@@ -54,7 +57,10 @@ const EMPTY_STAGES: Record<AgentId, StageLine[]> = {
   planner: [],
   research: [],
   coder: [],
+  qa: [],
   reviewer: [],
+  security: [],
+  devops: [],
   reporter: [],
 };
 
@@ -79,6 +85,7 @@ export default function App() {
   const [task, setTask] = useState("");
   const [autoApprove, setAutoApprove] = useState(false);
   const [liveWeb, setLiveWeb] = useState(true);
+  const [modelId, setModelId] = useState(HF_MODELS[0].id);
   const [notifyOn, setNotifyOn] = useState(false);
 
   /* ————— advanced: operators, scheduler, notifications ————— */
@@ -241,11 +248,11 @@ export default function App() {
         },
       });
       orchRef.current = orch;
-      void orch.run(goal, autoApprove || origin === "schedule", ltmSnapshot);
+      void orch.run(goal, autoApprove || origin === "schedule", ltmSnapshot, modelId);
 
       document.getElementById("console")?.scrollIntoView({ behavior: prm ? "auto" : "smooth", block: "start" });
     },
-    [task, autoApprove, liveWeb, active, notifyOn, prm, pushToast],
+    [task, autoApprove, liveWeb, modelId, active, notifyOn, prm, pushToast],
   );
 
   const runRef = useRef(runSwarm);
@@ -420,6 +427,8 @@ export default function App() {
                 setAutoApprove={setAutoApprove}
                 liveWeb={liveWeb}
                 setLiveWeb={setLiveWeb}
+                modelId={modelId}
+                setModelId={setModelId}
                 phase={phase}
               />
               <Pipeline

@@ -66,3 +66,54 @@ export function taskKeywords(task: string): string[] {
     .filter((w) => w.length > 2 && !STOP.has(w))
     .slice(0, 3);
 }
+
+/* Hugging Face hub model metadata — https://huggingface.co/api/models/:id (public, CORS-enabled) */
+export interface HfModelInfo {
+  downloads: number;
+  likes: number;
+  pipeline: string;
+}
+
+export async function hfModelInfo(id: string): Promise<HfModelInfo | null> {
+  try {
+    const json = (await getJSON(`https://huggingface.co/api/models/${encodeURIComponent(id)}`, 4500)) as {
+      downloads?: number;
+      likes?: number;
+      pipeline_tag?: string;
+    };
+    return {
+      downloads: json?.downloads ?? 0,
+      likes: json?.likes ?? 0,
+      pipeline: json?.pipeline_tag ?? "text-generation",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function fmtDownloads(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
+}
+
+/* OSV.dev advisory feed — POST https://api.osv.dev/v1/query (public, CORS-enabled) */
+export async function osvScan(pkg: string): Promise<{ vulns: number } | null> {
+  const ctrl = new AbortController();
+  const timer = window.setTimeout(() => ctrl.abort(), 4500);
+  try {
+    const res = await fetch("https://api.osv.dev/v1/query", {
+      method: "POST",
+      signal: ctrl.signal,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ package: { name: pkg, ecosystem: "PyPI" } }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = (await res.json()) as { vulns?: unknown[] };
+    return { vulns: Array.isArray(json?.vulns) ? json.vulns.length : 0 };
+  } catch {
+    return null;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}

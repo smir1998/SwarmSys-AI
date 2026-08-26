@@ -14,7 +14,10 @@
   --c-planner: #ffb454;
   --c-research: #56d4e0;
   --c-coder: #8ce99a;
+  --c-qa: #d9e34f;
   --c-reviewer: #ff7a68;
+  --c-security: #d98cf0;
+  --c-devops: #5fe0b7;
   --c-reporter: #8fb3ff;
 }
 
@@ -31,7 +34,10 @@
   --color-planner: var(--c-planner);
   --color-research: var(--c-research);
   --color-coder: var(--c-coder);
+  --color-qa: var(--c-qa);
   --color-reviewer: var(--c-reviewer);
+  --color-security: var(--c-security);
+  --color-devops: var(--c-devops);
   --color-reporter: var(--c-reporter);
   --font-display: "Chakra Petch", "IBM Plex Sans", sans-serif;
   --font-body: "IBM Plex Sans", "Segoe UI", sans-serif;

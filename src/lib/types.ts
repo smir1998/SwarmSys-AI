@@ -1,4 +1,12 @@
-export type AgentId = "planner" | "research" | "coder" | "reviewer" | "reporter";
+export type AgentId =
+  | "planner"
+  | "research"
+  | "coder"
+  | "qa"
+  | "reviewer"
+  | "security"
+  | "devops"
+  | "reporter";
 
 export type AgentStatus = "idle" | "thinking" | "working" | "done";
 
@@ -7,7 +15,9 @@ export type Phase =
   | "planning"
   | "approval"
   | "execution"
+  | "qa"
   | "review"
+  | "hardening"
   | "report"
   | "complete"
   | "aborted";
