@@ -81,7 +81,7 @@ export interface LtmEntry {
   value: string;
 }
 
-export type ViewId = "console" | "architecture" | "agents" | "ship";
+export type ViewId = "console" | "architecture" | "agents" | "ship" | "diagnostics";
 
 /* ————— advanced tier ————— */
 

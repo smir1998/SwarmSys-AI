@@ -77,7 +77,7 @@ Phases: `plan → approve → exec ∥ → qa → review ↺ → harden ∥ → 
 
 ## The console
 
-A four-panel interface — toggle horizontally, never scroll past everything:
+A five-panel interface — toggle horizontally, never scroll past everything:
 
 | Panel | Contents |
 |-------|----------|
@@ -85,10 +85,31 @@ A four-panel interface — toggle horizontally, never scroll past everything:
 | **02 Architecture** | The animated 8-node orchestration DAG with both fan-outs and the patch loop |
 | **03 Agents** | Dossiers: system prompt, responsibilities, tool belt and memory contract for each specialist |
 | **04 Ship it** | The advanced-features manifest, project tree, and the equivalent LangGraph `graph.py` |
+| **05 Diagnostics** | 12 predefined test cases executed against the live system — routing, SQL, memory stores, two full end-to-end swarm runs, the abort regression and endpoint resilience — with pass/fail streamed per case |
 
-Keyboard: `1`–`4` switch panels. Toggles: **auto-approve** (skip the gate), **live web** (real API evidence).
+Keyboard: `1`–`5` switch panels. Toggles: **auto-approve** (skip the gate), **live web** (real API evidence).
 Six built-in task domains — spam detection, support chatbot, RAG assistant, sentiment dashboard, news crawler,
 demand forecasting — each with real research notes and production-grade Python, plus a generic fallback.
+
+## Test by execution
+
+The `05 Diagnostics` panel ships a predefined case matrix that runs the real modules — no mocks, no
+stubs. The unit suite lands in under a second; the full suite adds two live swarm runs (~40s).
+
+| Case | Group | Input | Expected |
+|------|-------|-------|----------|
+| DET-01 | detection | `detectDomain('Build a spam email detector')` | routes to `spam`, 5 base subtasks |
+| DET-02 | detection | `detectDomain('…chatbot for customer support')` | routes to `chatbot` |
+| DET-03 | detection | unknown task | falls back to `manual` with full QA/security/DevOps contract |
+| SQL-01 | sql | `SELECT COUNT(*) FROM runs WHERE domain='spam'` | `1` |
+| SQL-02 | sql | `SELECT id, score … ORDER BY score DESC LIMIT 3` | `[92, 90, 88]` descending |
+| SQL-03 | sql | `DROP TABLE runs` | rejected with a structured error, table intact |
+| MEM-01 | memory | ledger write for operator A, read for operator B | isolated: A=1, B=0 |
+| MEM-02 | memory | `touchLtm` ×2 → count → purge | `2` → `0` |
+| ENG-01 | engine | full run, spam detector, auto-approved | 8/8 agents done · phase order · score ≥ 85 · report §01–§10 · sql + python tool calls |
+| ENG-02 | engine | full run, weakest HF model (Φ-3.5, q0.92) | score ≥ 78 floor · patch round fires |
+| ENG-03 | engine | abort at 1.5s mid-run | `onAbort` fires · no completion · no report |
+| NET-01 | resilience | HF hub + OSV.dev probes | degrade to `null`, never throw |
 
 ## Run it
 
@@ -117,14 +138,17 @@ src/
 │   ├── ArchitectureSection.tsx# animated DAG (panel 02)
 │   ├── DossiersSection.tsx    # agent prompts & contracts (panel 03)
 │   ├── ShipSection.tsx        # LangGraph port & stack (panel 04)
+│   ├── DiagnosticsSection.tsx # executable test suite UI (panel 05)
 │   └── NotifyToasts.tsx       # toast stream + browser push
 └── lib/
     ├── engine.ts              # the Orchestrator — gates, fan-outs, patch loop, report
     ├── knowledge.ts           # agent registry, 7 domains, HF models, tool registry
+    ├── diagnostics.ts         # 12 predefined cases + suite runner (real execution)
     ├── web.ts                 # live Wikipedia / GitHub / HF hub / OSV.dev clients
     ├── sqlite.ts              # embedded SQL engine
     ├── pdf.ts                 # client-side report typesetting
     ├── store.ts               # operator-scoped localStorage (ledger, LTM, schedules)
+    ├── types.ts               # shared contracts (agents, phases, records, views)
     └── ui.tsx                 # Reveal, MarkdownLite, icon set, motion hooks
 ```
 

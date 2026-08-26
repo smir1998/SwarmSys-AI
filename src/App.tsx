@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import AgentRoster from "./components/AgentRoster";
 import ArchitectureSection from "./components/ArchitectureSection";
+import DiagnosticsSection from "./components/DiagnosticsSection";
 import DossiersSection from "./components/DossiersSection";
 import Footer from "./components/Footer";
 import MemoryPanel from "./components/MemoryPanel";
@@ -138,7 +139,7 @@ export default function App() {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
-      const map: Record<string, ViewId> = { "1": "console", "2": "architecture", "3": "agents", "4": "ship" };
+      const map: Record<string, ViewId> = { "1": "console", "2": "architecture", "3": "agents", "4": "ship", "5": "diagnostics" };
       if (map[e.key]) switchView(map[e.key]);
     };
     window.addEventListener("keydown", onKey);
@@ -513,6 +514,7 @@ export default function App() {
         {view === "architecture" && <ArchitectureSection />}
         {view === "agents" && <DossiersSection />}
         {view === "ship" && <ShipSection />}
+        {view === "diagnostics" && <DiagnosticsSection />}
         </div>
       </main>
 
