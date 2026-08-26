@@ -1,4 +1,4 @@
-import { HF_MODELS, SAMPLE_TASKS } from "../lib/knowledge";
+import { HF_MODELS, PRESETS, type Preset } from "../lib/knowledge";
 import type { Phase } from "../lib/types";
 import { Icon } from "../lib/ui";
 
@@ -7,6 +7,7 @@ export default function TaskConsole({
   setTask,
   onRun,
   onAbort,
+  onPreset,
   running,
   autoApprove,
   setAutoApprove,
@@ -20,6 +21,7 @@ export default function TaskConsole({
   setTask: (v: string) => void;
   onRun: () => void;
   onAbort: () => void;
+  onPreset: (p: Preset) => void;
   running: boolean;
   autoApprove: boolean;
   setAutoApprove: (v: boolean) => void;
@@ -155,18 +157,42 @@ export default function TaskConsole({
         })}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-mut">try:</span>
-        {SAMPLE_TASKS.map((s) => (
-          <button
-            key={s}
-            onClick={() => setTask(s)}
-            disabled={running}
-            className="border border-line px-2.5 py-1 font-mono text-[10px] text-mut transition-all duration-200 hover:border-amber hover:text-amber disabled:opacity-40"
-          >
-            {s}
-          </button>
-        ))}
+      {/* predefined preset cases — task + model + policy in one click */}
+      <div className="border-t border-line px-4 py-3.5">
+        <p className="mb-2.5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-mut">
+          <Icon name="zap" className="h-3 w-3 text-amber" />
+          preset cases · task + model + gate policy bundled
+          <span className="hidden text-mut/60 sm:inline">— one click arms the swarm</span>
+        </p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+          {PRESETS.map((p) => {
+            const armed =
+              task === p.task && modelId === p.modelId && autoApprove === p.autoApprove && liveWeb === p.liveWeb;
+            return (
+              <button
+                key={p.id}
+                onClick={() => onPreset(p)}
+                disabled={running}
+                title={`${p.task} · ${p.modelId}`}
+                className={`group border px-2.5 py-2 text-left transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-40 ${
+                  armed
+                    ? "border-amber bg-amber/10 shadow-[0_0_18px_-8px_var(--amber)]"
+                    : "border-line hover:-translate-y-px hover:border-line2 hover:bg-panel2"
+                }`}
+              >
+                <p
+                  className={`flex items-center justify-between gap-1 font-display text-[11px] font-bold uppercase tracking-[0.04em] ${
+                    armed ? "text-amber" : "text-ink/85 group-hover:text-ink"
+                  }`}
+                >
+                  {p.label}
+                  {armed && <span className="led-on h-1.5 w-1.5 shrink-0 rounded-full bg-amber" />}
+                </p>
+                <p className="mt-1 font-mono text-[8.5px] leading-snug text-mut">{p.note}</p>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

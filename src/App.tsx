@@ -11,7 +11,7 @@ import ShipSection from "./components/ShipSection";
 import TaskConsole from "./components/TaskConsole";
 import TopBar from "./components/TopBar";
 import { Orchestrator } from "./lib/engine";
-import { HF_MODELS, detectDomain } from "./lib/knowledge";
+import { HF_MODELS, detectDomain, type Preset } from "./lib/knowledge";
 import {
   addOperator,
   clearLtm,
@@ -344,6 +344,22 @@ export default function App() {
     });
   }, []);
 
+  /* ————— preset cases ————— */
+  const applyPreset = useCallback(
+    (p: Preset) => {
+      setTask(p.task);
+      setModelId(p.modelId);
+      setAutoApprove(p.autoApprove);
+      setLiveWeb(p.liveWeb);
+      pushToast(
+        "info",
+        `Preset armed · ${p.label}`,
+        `${HF_MODELS.find((m) => m.id === p.modelId)?.label ?? p.modelId} · gate ${p.autoApprove ? "bypassed" : "on"} · web ${p.liveWeb ? "live" : "offline"}`,
+      );
+    },
+    [pushToast],
+  );
+
   /* ————— report actions ————— */
   const rehydrate = useCallback(
     (rec: RunRecord) => {
@@ -454,6 +470,7 @@ export default function App() {
                 setTask={setTask}
                 onRun={() => runSwarm()}
                 onAbort={() => orchRef.current?.abort()}
+                onPreset={applyPreset}
                 running={running}
                 autoApprove={autoApprove}
                 setAutoApprove={setAutoApprove}

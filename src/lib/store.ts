@@ -13,14 +13,37 @@ function safeParse<T>(raw: string | null, fallback: T): T {
   }
 }
 
+/* storage can throw (private mode, quota, disabled) — the console must not crash */
+function safeGet(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function safeSet(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* run continues in-memory only */
+  }
+}
+function safeRemove(key: string) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}
+
 /* ————— operators (multi-user workspace) ————— */
 
 const DEFAULT_OP: Operator = { id: "op-01", name: "operator-01", createdAt: 1735689600000 };
 
 export function loadOperators(): Operator[] {
-  const list = safeParse<Operator[]>(localStorage.getItem(OPS_KEY), []);
+  const list = safeParse<Operator[]>(safeGet(OPS_KEY), []);
   if (!list.length) {
-    localStorage.setItem(OPS_KEY, JSON.stringify([DEFAULT_OP]));
+    safeSet(OPS_KEY, JSON.stringify([DEFAULT_OP]));
     return [DEFAULT_OP];
   }
   return list;
@@ -28,12 +51,12 @@ export function loadOperators(): Operator[] {
 
 export function loadActiveOp(): string {
   const ops = loadOperators();
-  const id = localStorage.getItem(ACTIVE_KEY) ?? ops[0].id;
+  const id = safeGet(ACTIVE_KEY) ?? ops[0].id;
   return ops.some((o) => o.id === id) ? id : ops[0].id;
 }
 
 export function saveActiveOp(id: string) {
-  localStorage.setItem(ACTIVE_KEY, id);
+  safeSet(ACTIVE_KEY, id);
 }
 
 export function addOperator(rawName: string): { list: Operator[]; op: Operator } {
@@ -49,7 +72,7 @@ export function addOperator(rawName: string): { list: Operator[]; op: Operator }
   while (list.some((o) => o.name === name)) name = `${base}-${n++}`;
   const op: Operator = { id: `op-${Date.now().toString(36)}`, name, createdAt: Date.now() };
   const next = [...list, op];
-  localStorage.setItem(OPS_KEY, JSON.stringify(next));
+  safeSet(OPS_KEY, JSON.stringify(next));
   return { list: next, op };
 }
 
@@ -58,12 +81,12 @@ export function addOperator(rawName: string): { list: Operator[]; op: Operator }
 const ledgerKey = (opId: string) => `swarmsys.${opId}.ledger.v1`;
 
 export function loadLedger(opId: string): RunRecord[] {
-  return safeParse<RunRecord[]>(localStorage.getItem(ledgerKey(opId)), []);
+  return safeParse<RunRecord[]>(safeGet(ledgerKey(opId)), []);
 }
 
 export function pushLedger(opId: string, rec: RunRecord): RunRecord[] {
   const next = [rec, ...loadLedger(opId)].slice(0, 10);
-  localStorage.setItem(ledgerKey(opId), JSON.stringify(next));
+  safeSet(ledgerKey(opId), JSON.stringify(next));
   return next;
 }
 
@@ -72,7 +95,7 @@ export function pushLedger(opId: string, rec: RunRecord): RunRecord[] {
 const ltmKey = (opId: string) => `swarmsys.${opId}.ltm.v1`;
 
 export function loadLtm(opId: string): LtmEntry[] {
-  return safeParse<LtmEntry[]>(localStorage.getItem(ltmKey(opId)), []);
+  return safeParse<LtmEntry[]>(safeGet(ltmKey(opId)), []);
 }
 
 export function touchLtm(opId: string, domainId: string, model: string, liveSources: number): LtmEntry[] {
@@ -90,12 +113,12 @@ export function touchLtm(opId: string, domainId: string, model: string, liveSour
     { key: "prefs.liveSources", value: `${liveSources}` },
     { key: "prefs.lastRun", value: new Date().toISOString().slice(0, 16).replace("T", " ") },
   ];
-  localStorage.setItem(ltmKey(opId), JSON.stringify(next));
+  safeSet(ltmKey(opId), JSON.stringify(next));
   return next;
 }
 
 export function clearLtm(opId: string): LtmEntry[] {
-  localStorage.removeItem(ltmKey(opId));
+  safeRemove(ltmKey(opId));
   return [];
 }
 
@@ -107,11 +130,23 @@ export function ltmCountFor(entries: LtmEntry[], domainId: string): number {
 /* ————— autonomous scheduler ————— */
 
 export function loadSchedules(): Schedule[] {
-  return safeParse<Schedule[]>(localStorage.getItem(SCHED_KEY), []);
+  return safeParse<Schedule[]>(safeGet(SCHED_KEY), []);
 }
 
 export function saveSchedules(list: Schedule[]) {
-  localStorage.setItem(SCHED_KEY, JSON.stringify(list));
+  safeSet(SCHED_KEY, JSON.stringify(list));
+}
+
+/* ————— ship checklist ————— */
+
+const SHIP_KEY = "swarmsys.shipcheck.v1";
+
+export function loadShipCheck(): string[] {
+  return safeParse<string[]>(safeGet(SHIP_KEY), []);
+}
+
+export function saveShipCheck(done: string[]) {
+  safeSet(SHIP_KEY, JSON.stringify(done));
 }
 
 /* ————— misc ————— */

@@ -171,14 +171,78 @@ export const HF_MODELS: ModelDef[] = [
   { id: "microsoft/Phi-3.5-mini-instruct", label: "Phi-3.5 mini", params: "3.8B", ctx: "128k", quality: 0.92, speed: 1.3, tag: "edge" },
 ];
 
-export const SAMPLE_TASKS = [
-  "Build a spam email detector",
-  "Build an AI chatbot for customer support",
-  "Create a RAG document assistant",
-  "Analyze sentiment in product reviews",
-  "Scrape and clean a news dataset",
-  "Forecast weekly product demand",
+/* ————— predefined preset cases —————
+   One click bundles the task, the inference model and the swarm policy
+   (approval gate + live web) into a ready-to-run configuration. */
+
+export interface Preset {
+  id: string;
+  label: string;
+  note: string;
+  task: string;
+  modelId: string;
+  autoApprove: boolean;
+  liveWeb: boolean;
+}
+
+export const PRESETS: Preset[] = [
+  {
+    id: "preset-spam",
+    label: "Spam sweep",
+    note: "edge model · gate bypassed · live evidence",
+    task: "Build a spam email detector",
+    modelId: "microsoft/Phi-3.5-mini-instruct",
+    autoApprove: true,
+    liveWeb: true,
+  },
+  {
+    id: "preset-chatbot",
+    label: "Support bot",
+    note: "code-tuned · human gate on",
+    task: "Build an AI chatbot for customer support",
+    modelId: "Qwen/Qwen2.5-Coder-7B-Instruct",
+    autoApprove: false,
+    liveWeb: true,
+  },
+  {
+    id: "preset-rag",
+    label: "RAG audit",
+    note: "reasoning model · full review",
+    task: "Create a RAG document assistant",
+    modelId: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+    autoApprove: false,
+    liveWeb: true,
+  },
+  {
+    id: "preset-sentiment",
+    label: "Sentiment board",
+    note: "balanced · auto-approved",
+    task: "Analyze sentiment in product reviews",
+    modelId: "meta-llama/Llama-3.1-8B-Instruct",
+    autoApprove: true,
+    liveWeb: true,
+  },
+  {
+    id: "preset-crawler",
+    label: "News crawl",
+    note: "offline · deterministic evidence",
+    task: "Scrape and clean a news dataset",
+    modelId: "mistralai/Mistral-7B-Instruct-v0.3",
+    autoApprove: false,
+    liveWeb: false,
+  },
+  {
+    id: "preset-forecast",
+    label: "Demand forecast",
+    note: "baseline model · offline",
+    task: "Forecast weekly product demand",
+    modelId: "meta-llama/Llama-3.1-8B-Instruct",
+    autoApprove: false,
+    liveWeb: false,
+  },
 ];
+
+
 
 /* ————— domain knowledge ————— */
 

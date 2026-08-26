@@ -84,11 +84,15 @@ A four-panel interface — toggle horizontally, never scroll past everything:
 | **01 Console** | Task input, model selector, toggle switches, 8-agent roster, live pipeline, memory/tools/ledger rail, scheduler |
 | **02 Architecture** | The animated 8-node orchestration DAG with both fan-outs and the patch loop |
 | **03 Agents** | Dossiers: system prompt, responsibilities, tool belt and memory contract for each specialist |
-| **04 Ship it** | The advanced-features manifest, project tree, and the equivalent LangGraph `graph.py` |
+| **04 Ship it** | A working exit ramp: download the complete source `.zip` (30 files, buildable as-is) and the deploy pack (vercel.json, netlify.toml, render.yaml, Dockerfile + nginx, Dockerfile.api + requirements), copy-ready deploy commands for six targets, a persisted ship checklist, plus the LangGraph `graph.py` port |
 
 Keyboard: `1`–`4` switch panels. Toggles: **auto-approve** (skip the gate), **live web** (real API evidence).
-Six built-in task domains — spam detection, support chatbot, RAG assistant, sentiment dashboard, news crawler,
-demand forecasting — each with real research notes and production-grade Python, plus a generic fallback.
+
+**Preset cases** — six predefined configurations bundle the task, the Hugging Face model and the swarm
+policy into one click: *Spam sweep* (Φ-3.5, gate bypassed), *Support bot* (Qwen Coder, human gate),
+*RAG audit* (DeepSeek R1, full review), *Sentiment board* (Llama, auto-approved), *News crawl*
+(Mistral, offline), *Demand forecast* (Llama, offline). Each maps to a curated task domain with real
+research notes and production-grade Python; anything else routes to a generic fallback domain.
 
 ## Run it
 
@@ -120,11 +124,14 @@ src/
 │   └── NotifyToasts.tsx       # toast stream + browser push
 └── lib/
     ├── engine.ts              # the Orchestrator — gates, fan-outs, patch loop, report
-    ├── knowledge.ts           # agent registry, 7 domains, HF models, tool registry
+    ├── knowledge.ts           # agent registry, 7 domains, HF models, presets, tool registry
     ├── web.ts                 # live Wikipedia / GitHub / HF hub / OSV.dev clients
     ├── sqlite.ts              # embedded SQL engine
     ├── pdf.ts                 # client-side report typesetting
+    ├── shipkit.ts             # deploy manifests, targets, ship checklist
+    ├── archive.ts             # lazy source-archive builder (?raw + jszip)
     ├── store.ts               # operator-scoped localStorage (ledger, LTM, schedules)
+    ├── types.ts               # shared contracts (agents, phases, records, views)
     └── ui.tsx                 # Reveal, MarkdownLite, icon set, motion hooks
 ```
 

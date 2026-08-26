@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import type { Operator, Phase, ViewId } from "../lib/types";
 
-export const VIEWS: { id: ViewId; label: string }[] = [
-  { id: "console", label: "Console" },
-  { id: "architecture", label: "Architecture" },
-  { id: "agents", label: "Agents" },
-  { id: "ship", label: "Ship It" },
+export const VIEWS: { id: ViewId; label: string; short: string }[] = [
+  { id: "console", label: "Console", short: "Run" },
+  { id: "architecture", label: "Architecture", short: "Map" },
+  { id: "agents", label: "Agents", short: "Agents" },
+  { id: "ship", label: "Ship It", short: "Ship" },
 ];
 
 const PHASE_META: Record<Phase, { label: string; color: string; pulse: boolean }> = {
@@ -215,7 +215,8 @@ export default function TopBar({
                 style={{ background: isActive ? "var(--amber)" : "var(--line2)" }}
               />
               <span className="hidden opacity-55 min-[380px]:inline md:inline">0{i + 1}</span>
-              <span className="truncate">{v.label}</span>
+              <span className="truncate md:hidden">{v.short}</span>
+              <span className="hidden truncate md:inline">{v.label}</span>
               {showBusy && (
                 <span
                   className={`led-fast h-1.5 w-1.5 shrink-0 rounded-full ${phase === "approval" ? "bg-coral" : "bg-amber"}`}
