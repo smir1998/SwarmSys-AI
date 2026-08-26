@@ -150,7 +150,7 @@ export default function Pipeline({
             </span>
           ))}
         </div>
-        <p className="stroke-dim font-display text-4xl font-bold uppercase tracking-tight sm:text-6xl">
+        <p className="stroke-dim font-display text-3xl font-bold uppercase tracking-tight sm:text-5xl">
           Awaiting task
         </p>
         <p className="max-w-md font-mono text-xs leading-relaxed text-mut">

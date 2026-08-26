@@ -65,11 +65,11 @@ export default function TaskConsole({
             className="w-full bg-transparent font-mono text-sm text-ink outline-none"
           />
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-stretch gap-2.5">
           {running ? (
             <button
               onClick={onAbort}
-              className="flex h-[46px] items-center gap-2 border-2 border-coral px-5 font-display text-sm font-bold uppercase tracking-[0.1em] text-coral transition-all hover:bg-coral hover:text-bg"
+              className="flex h-[46px] flex-1 touch-manipulation items-center justify-center gap-2 border-2 border-coral px-5 font-display text-sm font-bold uppercase tracking-[0.1em] text-coral transition-all hover:bg-coral hover:text-bg sm:flex-none"
             >
               <Icon name="stop" className="h-4 w-4" />
               Abort
@@ -78,7 +78,7 @@ export default function TaskConsole({
             <button
               onClick={onRun}
               disabled={!canRun}
-              className="flex h-[46px] items-center gap-2.5 bg-amber px-6 font-display text-sm font-bold uppercase tracking-[0.1em] text-[#0a0f12] transition-all duration-200 hover:bg-ink disabled:cursor-not-allowed disabled:opacity-35"
+              className="flex h-[46px] flex-1 touch-manipulation items-center justify-center gap-2.5 bg-amber px-6 font-display text-sm font-bold uppercase tracking-[0.1em] text-[#0a0f12] transition-all duration-200 hover:bg-ink disabled:cursor-not-allowed disabled:opacity-35 sm:flex-none"
             >
               <Icon name="play" className="h-4 w-4" />
               Run swarm
@@ -89,7 +89,7 @@ export default function TaskConsole({
             role="switch"
             aria-checked={autoApprove}
             title="Skip the human-approval gate"
-            className={`flex h-[46px] items-center gap-2.5 border px-3.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all ${
+            className={`flex h-[46px] flex-1 touch-manipulation items-center justify-center gap-2.5 border px-3.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all sm:flex-none ${
               autoApprove
                 ? "border-amber/60 bg-amber/10 text-amber"
                 : "border-line text-mut hover:border-line2 hover:text-ink"
@@ -111,7 +111,7 @@ export default function TaskConsole({
             role="switch"
             aria-checked={liveWeb}
             title="Agents query live Wikipedia, GitHub, HF hub and OSV.dev"
-            className={`flex h-[46px] items-center gap-2.5 border px-3.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all ${
+            className={`flex h-[46px] flex-1 touch-manipulation items-center justify-center gap-2.5 border px-3.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all sm:flex-none ${
               liveWeb
                 ? "border-research/60 bg-research/10 text-research"
                 : "border-line text-mut hover:border-line2 hover:text-ink"

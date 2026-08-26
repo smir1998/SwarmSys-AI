@@ -416,7 +416,7 @@ export default function App() {
           <div className="mb-8 flex flex-wrap items-end justify-between gap-x-10 gap-y-4 border-t-2 border-line2 pt-5">
             <div>
               <p className="font-mono text-xs tracking-[0.28em] text-amber">/00</p>
-              <h1 className="mt-2 font-display text-5xl font-bold uppercase leading-[0.92] tracking-tight sm:text-6xl lg:text-7xl">
+              <h1 className="mt-2 font-display text-[2.45rem] font-bold uppercase leading-[0.95] tracking-tight sm:text-6xl lg:text-7xl">
                 Orchestration
                 <br />
                 Console<span className="blink text-amber">_</span>
