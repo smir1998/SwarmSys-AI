@@ -14,7 +14,7 @@ export default function Footer() {
               <circle cx="16" cy="19" r="2.2" fill="var(--coral)" stroke="none" />
             </svg>
             <span className="font-display text-lg font-bold uppercase tracking-[0.08em]">
-              Swarm<span className="text-amber">smith</span>
+              SwarmSys<span className="text-amber"> AI</span>
             </span>
           </a>
           <p className="mt-4 max-w-[42ch] font-body text-[13px] leading-relaxed text-mut">
@@ -60,7 +60,7 @@ export default function Footer() {
 
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-[1560px] flex-wrap items-center justify-between gap-4 px-5 py-5 font-mono text-[10px] uppercase tracking-[0.16em] text-mut md:px-8">
-          <span>© 2026 Swarmsmith · a multi-agent orchestration study</span>
+          <span>© 2026 SwarmSys AI · a multi-agent orchestration study</span>
           <span className="hidden md:inline">planner → research∥coder → reviewer↺ → reporter</span>
           <a href="#console" className="group flex items-center gap-2 border border-line px-3.5 py-2 transition-all hover:border-amber hover:text-amber">
             Back to console

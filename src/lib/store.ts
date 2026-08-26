@@ -1,7 +1,7 @@
 import type { LtmEntry, RunRecord } from "./types";
 
-const LEDGER_KEY = "swarmsmith.ledger.v1";
-const LTM_KEY = "swarmsmith.ltm.v1";
+const LEDGER_KEY = "swarmsys.ledger.v1";
+const LTM_KEY = "swarmsys.ltm.v1";
 
 function safeParse<T>(raw: string | null, fallback: T): T {
   if (!raw) return fallback;

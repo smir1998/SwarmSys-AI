@@ -314,7 +314,7 @@ class PoliteScraper:
     def __init__(self, base: str, delay: float = 1.5, timeout: int = 10) -> None:
         self.base, self.delay, self.timeout = base, delay, timeout
         self.session = requests.Session()
-        self.session.headers["User-Agent"] = "swarmsmith-demo/0.9 (+edu)"
+        self.session.headers["User-Agent"] = "swarmsys-ai-demo/0.9 (+edu)"
         self.robots = robotparser.RobotFileParser(f"{base}/robots.txt")
         self.robots.read()
 

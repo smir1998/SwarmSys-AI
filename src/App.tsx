@@ -166,7 +166,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `swarmsmith-report-${Date.now().toString(36)}.md`;
+    a.download = `swarmsys-ai-report-${Date.now().toString(36)}.md`;
     a.click();
     URL.revokeObjectURL(url);
   }, [report]);

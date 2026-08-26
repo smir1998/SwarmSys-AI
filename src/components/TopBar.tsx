@@ -39,7 +39,7 @@ export default function TopBar({ phase, runCount }: { phase: Phase; runCount: nu
             <circle cx="16" cy="19" r="2.2" fill="var(--coral)" stroke="none" />
           </svg>
           <span className="font-display text-lg font-bold uppercase tracking-[0.08em]">
-            Swarm<span className="text-amber">smith</span>
+            SwarmSys<span className="text-amber"> AI</span>
           </span>
           <span className="hidden font-mono text-[10px] uppercase tracking-[0.22em] text-mut sm:inline">
             multi-agent console
