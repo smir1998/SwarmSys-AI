@@ -6,7 +6,6 @@ export const VIEWS: { id: ViewId; label: string; short: string }[] = [
   { id: "architecture", label: "Architecture", short: "Map" },
   { id: "agents", label: "Agents", short: "Agents" },
   { id: "ship", label: "Ship It", short: "Ship" },
-  { id: "diagnostics", label: "Diagnostics", short: "Tests" },
 ];
 
 const PHASE_META: Record<Phase, { label: string; color: string; pulse: boolean }> = {
@@ -197,7 +196,7 @@ export default function TopBar({
       {/* ————— horizontal view rail ————— */}
       <nav
         aria-label="Console views"
-        className="mx-auto grid max-w-[1560px] grid-cols-5 items-stretch border-t border-line px-1 md:flex md:gap-0.5 md:px-8"
+        className="mx-auto grid max-w-[1560px] grid-cols-4 items-stretch border-t border-line px-1 md:flex md:gap-0.5 md:px-8"
       >
         {VIEWS.map((v, i) => {
           const isActive = v.id === view;
@@ -233,7 +232,7 @@ export default function TopBar({
           );
         })}
         <span className="ml-auto hidden shrink-0 items-center self-center gap-3 pl-4 font-mono text-[9px] uppercase tracking-[0.16em] text-mut/60 lg:flex">
-          <span>keys 1–5 switch view</span>
+          <span>keys 1–4 switch view</span>
           <span className="h-3 w-px bg-line2" />
           <span>no scroll — toggle panels</span>
         </span>

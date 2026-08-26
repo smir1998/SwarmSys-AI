@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import AgentRoster from "./components/AgentRoster";
 import ArchitectureSection from "./components/ArchitectureSection";
-import DiagnosticsSection from "./components/DiagnosticsSection";
 import DossiersSection from "./components/DossiersSection";
 import Footer from "./components/Footer";
 import MemoryPanel from "./components/MemoryPanel";
@@ -12,7 +11,7 @@ import ShipSection from "./components/ShipSection";
 import TaskConsole from "./components/TaskConsole";
 import TopBar from "./components/TopBar";
 import { Orchestrator } from "./lib/engine";
-import { HF_MODELS, detectDomain } from "./lib/knowledge";
+import { HF_MODELS, detectDomain, type Preset } from "./lib/knowledge";
 import {
   addOperator,
   clearLtm,
@@ -139,7 +138,7 @@ export default function App() {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
-      const map: Record<string, ViewId> = { "1": "console", "2": "architecture", "3": "agents", "4": "ship", "5": "diagnostics" };
+      const map: Record<string, ViewId> = { "1": "console", "2": "architecture", "3": "agents", "4": "ship" };
       if (map[e.key]) switchView(map[e.key]);
     };
     window.addEventListener("keydown", onKey);
@@ -345,6 +344,22 @@ export default function App() {
     });
   }, []);
 
+  /* ————— preset cases ————— */
+  const applyPreset = useCallback(
+    (p: Preset) => {
+      setTask(p.task);
+      setModelId(p.modelId);
+      setAutoApprove(p.autoApprove);
+      setLiveWeb(p.liveWeb);
+      pushToast(
+        "info",
+        `Preset armed · ${p.label}`,
+        `${HF_MODELS.find((m) => m.id === p.modelId)?.label ?? p.modelId} · gate ${p.autoApprove ? "bypassed" : "on"} · web ${p.liveWeb ? "live" : "offline"}`,
+      );
+    },
+    [pushToast],
+  );
+
   /* ————— report actions ————— */
   const rehydrate = useCallback(
     (rec: RunRecord) => {
@@ -455,6 +470,7 @@ export default function App() {
                 setTask={setTask}
                 onRun={() => runSwarm()}
                 onAbort={() => orchRef.current?.abort()}
+                onPreset={applyPreset}
                 running={running}
                 autoApprove={autoApprove}
                 setAutoApprove={setAutoApprove}
@@ -514,7 +530,6 @@ export default function App() {
         {view === "architecture" && <ArchitectureSection />}
         {view === "agents" && <DossiersSection />}
         {view === "ship" && <ShipSection />}
-        {view === "diagnostics" && <DiagnosticsSection />}
         </div>
       </main>
 
