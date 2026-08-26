@@ -141,6 +141,9 @@ export default function ArchitectureSection() {
             </text>
           </svg>
         </div>
+        <p className="mt-2.5 font-mono text-[9px] uppercase tracking-[0.22em] text-mut/70 md:hidden">
+          ← swipe the panel to pan the full topology →
+        </p>
       </Reveal>
 
       <Reveal delay={120}>

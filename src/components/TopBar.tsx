@@ -158,7 +158,7 @@ export default function TopBar({
                     }}
                     placeholder="new operator…"
                     aria-label="New operator name"
-                    className="w-full bg-transparent px-3.5 py-2.5 font-mono text-[11px] text-ink outline-none"
+                    className="w-full bg-transparent px-3.5 py-2.5 font-mono text-base text-ink outline-none md:text-[11px]"
                   />
                   <button
                     onClick={() => {

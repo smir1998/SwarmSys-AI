@@ -41,7 +41,7 @@ export default function MemoryPanel({
         ))}
       </div>
 
-      <div className="min-h-[380px] flex-1 overflow-y-auto p-3.5" style={{ maxHeight: 560 }}>
+      <div className="min-h-[300px] flex-1 overflow-y-auto p-3.5 md:min-h-[380px]" style={{ maxHeight: 560 }}>
         {tab === "memory" && (
           <div className="space-y-2">
             <p className="font-mono text-[9px] uppercase leading-relaxed tracking-[0.18em] text-mut">

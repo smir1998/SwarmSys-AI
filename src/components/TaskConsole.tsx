@@ -62,7 +62,7 @@ export default function TaskConsole({
             }}
             placeholder="Describe the task — e.g. build a spam email detector"
             aria-label="Task for the swarm"
-            className="w-full bg-transparent font-mono text-sm text-ink outline-none"
+            className="w-full bg-transparent font-mono text-base text-ink outline-none md:text-sm"
           />
         </div>
         <div className="flex flex-wrap items-stretch gap-2.5">
