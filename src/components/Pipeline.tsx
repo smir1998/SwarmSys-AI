@@ -115,6 +115,7 @@ export default function Pipeline({
   onRevise,
   onCopy,
   onDownload,
+  onPdf,
   onNewRun,
   copied,
 }: {
@@ -130,6 +131,7 @@ export default function Pipeline({
   onRevise: () => void;
   onCopy: () => void;
   onDownload: () => void;
+  onPdf: () => void;
   onNewRun: () => void;
   copied: boolean;
 }) {
@@ -279,6 +281,14 @@ export default function Pipeline({
             >
               <Icon name="download" className="h-3.5 w-3.5" />
               Download .md
+            </button>
+            <button
+              onClick={onPdf}
+              className="flex items-center gap-2 border border-reporter/50 px-3.5 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-reporter transition-all hover:bg-reporter/10"
+              title="Render the report as a typeset PDF"
+            >
+              <Icon name="download" className="h-3.5 w-3.5" />
+              Export PDF
             </button>
             <button
               onClick={onNewRun}

@@ -12,6 +12,8 @@ export type Phase =
   | "complete"
   | "aborted";
 
+export type Origin = "manual" | "schedule";
+
 export type LineKind = "sys" | "info" | "data" | "code" | "good" | "warn";
 
 export interface StageLine {
@@ -60,9 +62,44 @@ export interface RunRecord {
   at: number;
   wallMs: number;
   report: string;
+  origin?: Origin;
+  operator?: string;
 }
 
 export interface LtmEntry {
   key: string;
   value: string;
+}
+
+/* ————— advanced tier ————— */
+
+export interface Operator {
+  id: string;
+  name: string;
+  createdAt: number;
+}
+
+export interface Schedule {
+  id: string;
+  task: string;
+  everyMin: number;
+  nextDue: number;
+  runs: number;
+  enabled: boolean;
+  createdAt: number;
+}
+
+export interface ToastMsg {
+  id: string;
+  kind: "ok" | "warn" | "info";
+  title: string;
+  body?: string;
+}
+
+export interface WebSource {
+  title: string;
+  url: string;
+  snippet: string;
+  kind: "wiki" | "github";
+  meta?: string;
 }

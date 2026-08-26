@@ -10,6 +10,8 @@ export default function TaskConsole({
   running,
   autoApprove,
   setAutoApprove,
+  liveWeb,
+  setLiveWeb,
   phase,
 }: {
   task: string;
@@ -19,6 +21,8 @@ export default function TaskConsole({
   running: boolean;
   autoApprove: boolean;
   setAutoApprove: (v: boolean) => void;
+  liveWeb: boolean;
+  setLiveWeb: (v: boolean) => void;
   phase: Phase;
 }) {
   const canRun = task.trim().length > 0 && !running;
@@ -97,6 +101,28 @@ export default function TaskConsole({
               />
             </span>
             auto-approve
+          </button>
+          <button
+            onClick={() => setLiveWeb(!liveWeb)}
+            role="switch"
+            aria-checked={liveWeb}
+            title="Research agent queries live Wikipedia + GitHub APIs"
+            className={`flex h-[46px] items-center gap-2.5 border px-3.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-all ${
+              liveWeb
+                ? "border-research/60 bg-research/10 text-research"
+                : "border-line text-mut hover:border-line2 hover:text-ink"
+            }`}
+          >
+            <span
+              className={`relative h-3.5 w-7 border transition-colors ${liveWeb ? "border-research" : "border-line2"}`}
+            >
+              <span
+                className={`absolute top-[2px] h-2 w-2 transition-all duration-200 ${
+                  liveWeb ? "left-[16px] bg-research" : "left-[2px] bg-mut"
+                }`}
+              />
+            </span>
+            live web
           </button>
         </div>
       </div>

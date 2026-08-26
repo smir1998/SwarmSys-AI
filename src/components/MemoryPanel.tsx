@@ -133,7 +133,10 @@ export default function MemoryPanel({
                 >
                   <p className="truncate font-mono text-[10.5px] text-ink/85">{r.task}</p>
                   <p className="mt-1 flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.12em] text-mut">
-                    <span>{r.domain}</span>
+                    <span>
+                      {r.domain}
+                      {r.origin === "schedule" && <span className="ml-1.5 text-amber">· auto</span>}
+                    </span>
                     <span>
                       <span className={r.score >= 90 ? "text-coder" : "text-amber"}>{r.score}/100</span>
                       {" · " + timeAgo(r.at)}
