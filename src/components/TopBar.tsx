@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Operator, Phase } from "../lib/types";
+import type { Operator, Phase, ViewId } from "../lib/types";
 
 const PHASE_META: Record<Phase, { label: string; color: string; pulse: boolean }> = {
   idle: { label: "STANDBY", color: "var(--mut)", pulse: false },
@@ -13,6 +13,13 @@ const PHASE_META: Record<Phase, { label: string; color: string; pulse: boolean }
   complete: { label: "RUN COMPLETE", color: "var(--c-coder)", pulse: false },
   aborted: { label: "RUN ABORTED", color: "var(--coral)", pulse: false },
 };
+
+export const VIEWS: { id: ViewId; label: string }[] = [
+  { id: "console", label: "Console" },
+  { id: "architecture", label: "Architecture" },
+  { id: "agents", label: "Agents" },
+  { id: "ship", label: "Ship It" },
+];
 
 function Clock() {
   const [now, setNow] = useState(() => new Date());
@@ -31,6 +38,8 @@ function Clock() {
 export default function TopBar({
   phase,
   runCount,
+  view,
+  onView,
   operators,
   activeId,
   onSwitch,
@@ -40,6 +49,8 @@ export default function TopBar({
 }: {
   phase: Phase;
   runCount: number;
+  view: ViewId;
+  onView: (v: ViewId) => void;
   operators: Operator[];
   activeId: string;
   onSwitch: (id: string) => void;
@@ -54,8 +65,9 @@ export default function TopBar({
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-bg/85 backdrop-blur-md">
+      {/* ————— status row ————— */}
       <div className="mx-auto flex h-14 max-w-[1560px] items-center justify-between gap-4 px-5 md:px-8">
-        <a href="#console" className="group flex items-center gap-3">
+        <button onClick={() => onView("console")} className="group flex items-center gap-3 text-left">
           <svg viewBox="0 0 24 24" className="h-6 w-6 text-amber transition-transform duration-300 group-hover:rotate-[18deg]" fill="none" stroke="currentColor" strokeWidth="1.6">
             <path d="M8 19L12 5l8 14z" />
             <circle cx="12" cy="5" r="2.2" fill="var(--c-research)" stroke="none" />
@@ -68,24 +80,7 @@ export default function TopBar({
           <span className="hidden font-mono text-[10px] uppercase tracking-[0.22em] text-mut sm:inline">
             multi-agent console
           </span>
-        </a>
-
-        <nav className="hidden items-center gap-6 lg:flex" aria-label="Sections">
-          {[
-            ["#console", "Console"],
-            ["#architecture", "Architecture"],
-            ["#agents", "Agents"],
-            ["#ship", "Ship it"],
-          ].map(([href, label]) => (
-            <a
-              key={href}
-              href={href}
-              className="font-mono text-[10px] uppercase tracking-[0.2em] text-mut transition-colors hover:text-amber"
-            >
-              {label}
-            </a>
-          ))}
-        </nav>
+        </button>
 
         <div className="flex items-center gap-3 md:gap-5">
           <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-mut xl:inline">
@@ -191,6 +186,43 @@ export default function TopBar({
           </span>
         </div>
       </div>
+
+      {/* ————— horizontal view rail ————— */}
+      <nav
+        aria-label="Console views"
+        className="mx-auto flex max-w-[1560px] items-stretch gap-0.5 overflow-x-auto border-t border-line px-3 md:px-8"
+      >
+        {VIEWS.map((v, i) => {
+          const isActive = v.id === view;
+          return (
+            <button
+              key={v.id}
+              onClick={() => onView(v.id)}
+              aria-current={isActive ? "page" : undefined}
+              className={`relative flex shrink-0 items-center gap-2.5 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.18em] transition-colors duration-200 md:px-5 ${
+                isActive ? "text-amber" : "text-mut hover:text-ink"
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full transition-colors ${isActive ? "led-on" : ""}`}
+                style={{ background: isActive ? "var(--amber)" : "var(--line2)" }}
+              />
+              <span className="opacity-55">0{i + 1}</span>
+              {v.label}
+              <span
+                className={`absolute inset-x-3 bottom-0 h-[2px] origin-left bg-amber transition-transform duration-300 ease-out ${
+                  isActive ? "scale-x-100" : "scale-x-0"
+                }`}
+              />
+            </button>
+          );
+        })}
+        <span className="ml-auto hidden shrink-0 items-center self-center gap-3 pl-4 font-mono text-[9px] uppercase tracking-[0.16em] text-mut/60 md:flex">
+          <span>keys 1–4 switch view</span>
+          <span className="h-3 w-px bg-line2" />
+          <span>no scroll — toggle panels</span>
+        </span>
+      </nav>
     </header>
   );
 }

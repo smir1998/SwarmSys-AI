@@ -80,7 +80,7 @@ export default function ShipSection() {
   };
 
   return (
-    <section id="ship" className="relative mx-auto max-w-[1560px] px-5 py-20 md:px-8 md:py-28">
+    <section id="ship" className="relative mx-auto max-w-[1560px] px-5 pb-20 pt-[7.5rem] md:px-8 md:pb-28 md:pt-[8rem]">
       <SectionHead
         no="03"
         title="Ship It For Real"

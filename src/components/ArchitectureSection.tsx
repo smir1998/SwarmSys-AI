@@ -72,7 +72,7 @@ function Flow({ d, color = "var(--amber)" }: { d: string; color?: string }) {
 export default function ArchitectureSection() {
   const c = (id: AgentId) => AGENTS[id].color;
   return (
-    <section id="architecture" className="relative mx-auto max-w-[1560px] px-5 py-20 md:px-8 md:py-28">
+    <section id="architecture" className="relative mx-auto max-w-[1560px] px-5 pb-20 pt-[7.5rem] md:px-8 md:pb-28 md:pt-[8rem]">
       <SectionHead
         no="01"
         title="Orchestration Map"
