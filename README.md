@@ -3,7 +3,7 @@
 > 🚀 **Live deployment:** [https://smir1998.github.io/swarmsys-ai/](https://smir1998.github.io/swarmsys-ai/)
 > — shipped by **GitHub Actions** on every push to `main`.
 >
-> _Replace `<your-username>` with your GitHub handle after the first green run — see [Deploy via GitHub Actions](#deploy-via-github-actions)._
+> see [Deploy via GitHub Actions](#deploy-via-github-actions)._
 
 **A multi-agent AI system that runs entirely in your browser.**
 
