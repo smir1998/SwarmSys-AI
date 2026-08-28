@@ -1,20 +1,15 @@
 # SwarmSys AI
 
-> 🚀 **Live deployment:** [https://your-username.github.io/swarmsys-ai/](https://your-username.github.io/swarmsys-ai/)
+> 🚀 **Live deployment:** [https://smir1998.github.io/swarmsys-ai/](https://smir1998.github.io/swarmsys-ai/)
 > — shipped by **GitHub Actions** on every push to `main`.
 >
 > _Replace `<your-username>` with your GitHub handle after the first green run — see [Deploy via GitHub Actions](#deploy-via-github-actions)._
 
 **A multi-agent AI system that runs entirely in your browser.**
 
-Eight specialized agents decompose, research, build, test, review, harden and document a task end-to-end —
-coordinated through one shared memory store, with tool calls, live web evidence, a human-approval gate,
-a reviewer patch loop and an autonomous scheduler. No API keys, no backend, no setup: it ships as a single
-static build.
+Eight specialized agents decompose, research, build, test, review, harden and document a task end-to-end — coordinated through one shared memory store,with tool calls, live web evidence, a human-approval gate, a reviewer patch loop and an autonomous scheduler. No API keys, no backend, no setup: it ships as a single static build.
 
-The specialists are deterministic by design — the orchestration layer (topology, memory contracts, gates,
-tools) is the point, and every prompt and contract is written to carry over unchanged when you swap in
-real LLM nodes.
+The specialists are deterministic by design — the orchestration layer (topology, memory contracts, gates, tools) is the point, and every prompt and contract is written to carry over unchanged when you swap in real LLM nodes.
 
 ---
 
@@ -51,14 +46,14 @@ Phases: `plan → approve → exec ∥ → qa → review ↺ → harden ∥ → 
 
 | # | Agent | Job | Writes to shared memory |
 |---|-------|-----|-------------------------|
-| A1 | **Planner** | Parses the goal, grounds it in long-term preferences, decomposes into subtasks, validates the inference model against the HF hub | `plan.subtasks`, `inference.model` |
-| A2 | **Research** | Collects evidence — live Wikipedia/GitHub hits, datasets, metrics — and seals it into memory | `research.stack`, `research.metrics`, `research.live.sources` |
-| A3 | **Coder** | Generates typed, commented Python with tests; honors the locked research contract; queries the embedded SQL ledger | `code.artifact`, `code.tests` |
-| A4 | **QA** | Runs the unit/edge/property matrix, measures coverage, mutation-tests | `qa.coverage`, `qa.edge_cases` |
-| A5 | **Reviewer** | Lints, tests, scores 0–100. Below 85 it hands the Coder one precise patch list | `review.score`, `review.flags` |
-| A6 | **Security** | SAST for secrets/injection + live OSV.dev CVE scan; critical findings block the ship | `security.verdict`, `security.findings` |
-| A7 | **DevOps** | Dockerfile, CI workflow, rollback plan — the deployment contract | `deploy.contract` |
-| A8 | **Reporter** | Merges every stage into the final report; exports Markdown and a typeset PDF | `report.md` |
+| A1| **Planner** | Parses the goal, grounds it in long-term preferences, decomposes into subtasks, validates the inference model against the HF hub | `plan.subtasks`, `inference.model` |
+| A2| **Research** | Collects evidence — live Wikipedia/GitHub hits, datasets, metrics — and seals it into memory | `research.stack`, `research.metrics`, `research.live.sources` |
+| A3| **Coder** | Generates typed, commented Python with tests; honors the locked research contract; queries the embedded SQL ledger | `code.artifact`, `code.tests` |
+| A4| **QA** | Runs the unit/edge/property matrix, measures coverage, mutation-tests | `qa.coverage`, `qa.edge_cases` |
+| A5| **Reviewer** | Lints, tests, scores 0–100. Below 85 it hands the Coder one precise patch list | `review.score`, `review.flags` |
+| A6| **Security** | SAST for secrets/injection + live OSV.dev CVE scan; critical findings block the ship | `security.verdict`, `security.findings` |
+| A7| **DevOps** | Dockerfile, CI workflow, rollback plan — the deployment contract | `deploy.contract` |
+| A8| **Reporter** | Merges every stage into the final report; exports Markdown and a typeset PDF | `report.md` |
 
 ## Features
 
