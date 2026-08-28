@@ -1,5 +1,9 @@
 # SwarmSys AI
 
+> 🚀 **Live deployment:** [https://swarmsys-ai.vercel.app](https://swarmsys-ai.vercel.app)
+>
+> _Swap in your own URL after deploying — the build is fully static, no server or keys required._
+
 **A multi-agent AI system that runs entirely in your browser.**
 
 Eight specialized agents decompose, research, build, test, review, harden and document a task end-to-end —
@@ -105,6 +109,26 @@ npm run build     # static production build in dist/
 Stack: **React + TypeScript + Vite + Tailwind v4**, Chakra Petch / IBM Plex type pairing.
 Zero runtime dependencies beyond jsPDF (code-split) — everything else is hand-rolled, including the SQL
 engine, the markdown renderer and the orchestration core.
+
+## Live deployment
+
+| | |
+|---|---|
+| 🔗 **URL** | [https://swarmsys-ai.vercel.app](https://swarmsys-ai.vercel.app) |
+| 📦 **Build** | `npm run build` → static `dist/` (zero server, zero keys) |
+| ⚡ **Deploy** | `npm i -g vercel && vercel --prod` |
+| 🗂 **Manifests** | `vercel.json` · `netlify.toml` · `render.yaml` · `Dockerfile` + `nginx.conf` — all downloadable from the in-app **Ship It** panel |
+
+```bash
+# one command per target — after npm run build
+vercel --prod                          # → https://<project>.vercel.app
+npx netlify-cli deploy --prod --dir=dist   # → https://<site>.netlify.app
+npx gh-pages -d dist                   # → https://<user>.github.io/<repo>
+docker build -t swarmsys-ai . && docker run -d -p 8080:80 swarmsys-ai  # → http://localhost:8080
+```
+
+> After your first deploy, replace the placeholder URL above (and the banner at the top of this file)
+> with your live address. The **Ship It → checklist** inside the app tracks this step.
 
 ## Project structure
 
