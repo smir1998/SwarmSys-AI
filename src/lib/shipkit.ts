@@ -92,9 +92,9 @@ export const DEPLOY_TARGETS: { id: string; label: string; commands: string[]; no
   },
   {
     id: "ghpages",
-    label: "GitHub Pages",
-    commands: ["npm run build", "npx gh-pages -d dist"],
-    note: "add \"homepage\" + base path if the repo isn't user-rooted",
+    label: "GitHub Pages · Actions",
+    commands: ["git push origin main", "# Settings → Pages → Source: GitHub Actions"],
+    note: ".github/workflows/deploy.yml ships it — zero-downtime on every push",
   },
   {
     id: "render",
@@ -134,7 +134,14 @@ export function deployGuide(): string {
     "",
     ...Object.keys(MANIFESTS).map((f) => `- \`${f}\``),
     "",
-    "## Fastest path (static console)",
+    "## Primary path — GitHub Actions (zero-config)",
+    "",
+    "1. Push the repo to GitHub (`git push origin main`)",
+    "2. Repo → Settings → Pages → Source: **GitHub Actions**",
+    "3. `.github/workflows/deploy.yml` builds and publishes on every push:",
+    "   `https://<your-username>.github.io/<repo>/`",
+    "",
+    "## Alternative targets (static console)",
     "",
     "1. `npm install && npm run build` in the source project",
     "2. Copy the manifest for your target next to `package.json`",
@@ -150,7 +157,7 @@ export function deployGuide(): string {
 }
 
 /* file count for the source archive (kept in sync with lib/archive.ts) */
-export const SOURCE_FILE_COUNT = 30;
+export const SOURCE_FILE_COUNT = 31;
 
 export function triggerDownload(filename: string, content: string, mime = "text/plain") {
   const blob = new Blob([content], { type: mime });
@@ -158,6 +165,11 @@ export function triggerDownload(filename: string, content: string, mime = "text/
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  a.style.display = "none";
+  document.body.appendChild(a);
   a.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+  window.setTimeout(() => {
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 4000);
 }

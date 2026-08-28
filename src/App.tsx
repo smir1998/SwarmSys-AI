@@ -6,6 +6,7 @@ import Footer from "./components/Footer";
 import MemoryPanel from "./components/MemoryPanel";
 import NotifyToasts, { askNotifyPermission, browserNotify } from "./components/NotifyToasts";
 import Pipeline from "./components/Pipeline";
+import ReportViewer, { type ViewerState } from "./components/ReportViewer";
 import SchedulerPanel from "./components/SchedulerPanel";
 import ShipSection from "./components/ShipSection";
 import TaskConsole from "./components/TaskConsole";
@@ -389,21 +390,52 @@ export default function App() {
     }
   }, [report]);
 
+  const [viewer, setViewer] = useState<ViewerState | null>(null);
+  const openViewer = useCallback((next: ViewerState) => {
+    setViewer((prev) => {
+      if (prev?.url) URL.revokeObjectURL(prev.url);
+      return next;
+    });
+  }, []);
+  const closeViewer = useCallback(() => {
+    setViewer((prev) => {
+      if (prev?.url) URL.revokeObjectURL(prev.url);
+      return null;
+    });
+  }, []);
+
   const downloadReport = useCallback(() => {
-    const blob = new Blob([report], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `swarmsys-ai-report-${Date.now().toString(36)}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [report]);
+    if (!report) {
+      pushToast("warn", "Nothing to download", "no report generated yet — run the swarm first");
+      return;
+    }
+    openViewer({
+      kind: "md",
+      url: null,
+      md: report,
+      name: `swarmsys-ai-report-${Date.now().toString(36)}.md`,
+    });
+    pushToast("info", "Report viewer open", "copy or save the markdown from the panel");
+  }, [report, openViewer, pushToast]);
 
   const exportPdf = useCallback(async () => {
-    const { reportToPdf } = await import("./lib/pdf");
-    reportToPdf(report, { task: lastTask, operator: active.name, score });
-    pushToast("ok", "PDF exported", "swarmsys-ai-report.pdf — typeset client-side");
-  }, [report, lastTask, active, score, pushToast]);
+    if (!report) {
+      pushToast("warn", "Nothing to export", "no report generated yet — run the swarm first");
+      return;
+    }
+    try {
+      const { buildReportPdf } = await import("./lib/pdf");
+      const url = buildReportPdf(report, { task: lastTask, operator: active.name, score });
+      openViewer({ kind: "pdf", url, name: "swarmsys-ai-report.pdf" });
+      pushToast("ok", "PDF ready", "preview open — hit “save file” in the viewer");
+    } catch (err) {
+      pushToast(
+        "warn",
+        "PDF generation failed",
+        err instanceof Error ? err.message : "unknown error — the markdown export still works",
+      );
+    }
+  }, [report, lastTask, active, score, openViewer, pushToast]);
 
   return (
     <div className="relative min-h-screen">
@@ -534,6 +566,8 @@ export default function App() {
       </main>
 
       <Footer onView={switchView} view={view} />
+      {viewer && <ReportViewer state={viewer} onClose={closeViewer} />}
+
       <NotifyToasts toasts={toasts} onDismiss={dismissToast} />
     </div>
   );

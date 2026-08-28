@@ -1,5 +1,10 @@
 # SwarmSys AI
 
+> 🚀 **Live deployment:** [https://your-username.github.io/swarmsys-ai/](https://your-username.github.io/swarmsys-ai/)
+> — shipped by **GitHub Actions** on every push to `main`.
+>
+> _Replace `<your-username>` with your GitHub handle after the first green run — see [Deploy via GitHub Actions](#deploy-via-github-actions)._
+
 **A multi-agent AI system that runs entirely in your browser.**
 
 Eight specialized agents decompose, research, build, test, review, harden and document a task end-to-end —
@@ -106,33 +111,103 @@ Stack: **React + TypeScript + Vite + Tailwind v4**, Chakra Petch / IBM Plex type
 Zero runtime dependencies beyond jsPDF (code-split) — everything else is hand-rolled, including the SQL
 engine, the markdown renderer and the orchestration core.
 
+## Live deployment
+
+| | |
+|---|---|
+| 🔗 **URL** | [https://your-username.github.io/swarmsys-ai/](https://your-username.github.io/swarmsys-ai/) — GitHub Pages |
+| 🤖 **Pipeline** | [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) — builds and publishes on every push |
+| 📦 **Build** | `npm ci && npm run build -- --base=./` → static `dist/` (zero server, zero keys) |
+| ⚡ **Deploy** | `git push origin main` — Actions does the rest |
+| 🗂 **Manifests** | `vercel.json` · `netlify.toml` · `render.yaml` · `Dockerfile` + `nginx.conf` — all downloadable from the in-app **Ship It** panel |
+
+```bash
+# GitHub Actions is the primary pipeline — zero commands after the first push
+git push origin main                       # → https://<your-username>.github.io/swarmsys-ai/
+
+# alternatives — after npm run build
+vercel --prod                              # → https://<project>.vercel.app
+npx netlify-cli deploy --prod --dir=dist   # → https://<site>.netlify.app
+docker build -t swarmsys-ai . && docker run -d -p 8080:80 swarmsys-ai  # → http://localhost:8080
+```
+
+> After your first green run, replace `<your-username>` above (and in the banner at the top of this file)
+> with your real handle. The **Ship It → checklist** inside the app tracks this step.
+
+## Deploy via GitHub Actions
+
+The repo ships a zero-config pipeline — [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) —
+that builds the bundle and publishes it to GitHub Pages on every push to `main`.
+
+### Setup (once, ~3 minutes)
+
+1. **Create the repo and push**
+
+   ```bash
+   git init && git add -A && git commit -m "swarmsys-ai: multi-agent console"
+   git branch -M main
+   git remote add origin https://github.com/<your-username>/swarmsys-ai.git
+   git push -u origin main
+   ```
+
+2. **Enable Pages** — repo → **Settings → Pages → Source: GitHub Actions**
+
+3. **Done.** The workflow runs and the console goes live at:
+
+   ```
+   https://<your-username>.github.io/swarmsys-ai/
+   ```
+
+   Every later push to `main` redeploys automatically — zero-downtime, atomic swap.
+
+### Pipeline anatomy
+
+| Step | Does what |
+|------|-----------|
+| `actions/checkout@v4` + `setup-node@v4` | Node 20 with the npm cache |
+| `npm ci` | reproducible install from the lockfile |
+| `npm run build -- --base=./` | static build with **relative asset URLs** (required for the `/<repo>/` sub-path) |
+| `actions/upload-pages-artifact@v3` | hands `dist/` to the Pages environment |
+| `actions/deploy-pages@v4` | atomic publish behind a `pages` concurrency group |
+
+### Status badge
+
+Drop this under the title once the repo is public:
+
+```markdown
+![deploy](https://github.com/<your-username>/swarmsys-ai/actions/workflows/deploy.yml/badge.svg)
+```
+
 ## Project structure
 
 ```
-src/
-├── App.tsx                    # panel switching, run lifecycle, operators, scheduler
-├── components/
-│   ├── TopBar.tsx             # status, clock, notify, operator seats, panel rail
-│   ├── TaskConsole.tsx        # input, model selector, toggles, sample tasks
-│   ├── Pipeline.tsx           # the 8-stage streaming board + approval gate + report
-│   ├── AgentRoster.tsx        # live per-agent status rail
-│   ├── MemoryPanel.tsx        # shared memory / tool calls / run ledger tabs
-│   ├── SchedulerPanel.tsx     # autonomous recurring runs
-│   ├── ArchitectureSection.tsx# animated DAG (panel 02)
-│   ├── DossiersSection.tsx    # agent prompts & contracts (panel 03)
-│   ├── ShipSection.tsx        # LangGraph port & stack (panel 04)
-│   └── NotifyToasts.tsx       # toast stream + browser push
-└── lib/
-    ├── engine.ts              # the Orchestrator — gates, fan-outs, patch loop, report
-    ├── knowledge.ts           # agent registry, 7 domains, HF models, presets, tool registry
-    ├── web.ts                 # live Wikipedia / GitHub / HF hub / OSV.dev clients
-    ├── sqlite.ts              # embedded SQL engine
-    ├── pdf.ts                 # client-side report typesetting
-    ├── shipkit.ts             # deploy manifests, targets, ship checklist
-    ├── archive.ts             # lazy source-archive builder (?raw + jszip)
-    ├── store.ts               # operator-scoped localStorage (ledger, LTM, schedules)
-    ├── types.ts               # shared contracts (agents, phases, records, views)
-    └── ui.tsx                 # Reveal, MarkdownLite, icon set, motion hooks
+.
+├── .github/workflows/deploy.yml # CI: build → GitHub Pages on every push to main
+└── src/
+    ├── App.tsx                  # panel switching, run lifecycle, operators, scheduler
+    ├── components/
+    │   ├── TopBar.tsx           # status, clock, notify, operator seats, panel rail
+    │   ├── TaskConsole.tsx      # input, presets, model selector, toggles
+    │   ├── Pipeline.tsx         # the 8-stage streaming board + approval gate + report
+    │   ├── AgentRoster.tsx      # live per-agent status rail
+    │   ├── MemoryPanel.tsx      # shared memory / tool calls / run ledger tabs
+    │   ├── SchedulerPanel.tsx   # autonomous recurring runs
+    │   ├── ReportViewer.tsx     # PDF preview / markdown save modal
+    │   ├── ArchitectureSection.tsx # animated DAG (panel 02)
+    │   ├── DossiersSection.tsx  # agent prompts & contracts (panel 03)
+    │   ├── ShipSection.tsx      # ship actions, deploy targets, checklist (panel 04)
+    │   └── NotifyToasts.tsx     # toast stream + browser push
+    └── lib/
+        ├── engine.ts            # the Orchestrator — gates, fan-outs, patch loop, report
+        ├── knowledge.ts         # agent registry, 7 domains, HF models, presets
+        ├── web.ts               # live Wikipedia / GitHub / HF hub / OSV.dev clients
+        ├── sqlite.ts            # embedded SQL engine
+        ├── pdf.ts               # client-side report typesetting
+        ├── shipkit.ts           # deploy manifests, targets, ship checklist
+        ├── archive.ts           # lazy source-archive builder (?raw + jszip)
+        ├── store.ts             # operator-scoped localStorage (ledger, LTM, schedules)
+        ├── types.ts             # shared contracts (agents, phases, records, views)
+        └── ui.tsx               # Reveal, MarkdownLite, icon set, motion hooks
 ```
 
 ## Port it to production

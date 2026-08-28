@@ -3,7 +3,7 @@ import { jsPDF } from "jspdf";
 /* Client-side PDF rendering of the final report — no server, no print dialog.
    Parses the markdown-lite structure (h1/h2/bullets/code/rules) into a typeset A4. */
 
-export function reportToPdf(md: string, meta: { task: string; operator: string; score: number | null }) {
+export function buildReportPdf(md: string, meta: { task: string; operator: string; score: number | null }): string {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const W = 595.28;
   const M = 46;
@@ -105,5 +105,7 @@ export function reportToPdf(md: string, meta: { task: string; operator: string; 
     }
   }
 
-  doc.save("swarmsys-ai-report.pdf");
+  /* return a blob URL so the UI can preview, save or open it — works
+     even in contexts where anchor-click downloads are blocked */
+  return URL.createObjectURL(doc.output("blob") as Blob);
 }
