@@ -110,7 +110,7 @@ engine, the markdown renderer and the orchestration core.
 
 | | |
 |---|---|
-| 🔗 **URL** | [https://your-username.github.io/swarmsys-ai/](https://your-username.github.io/swarmsys-ai/) — GitHub Pages |
+| 🔗 **URL** | [https://smir1998.github.io/swarmsys-ai/](https://smir1998.github.io/swarmsys-ai/) — GitHub Pages |
 | 🤖 **Pipeline** | [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) — builds and publishes on every push |
 | 📦 **Build** | `npm ci && npm run build -- --base=./` → static `dist/` (zero server, zero keys) |
 | ⚡ **Deploy** | `git push origin main` — Actions does the rest |
@@ -118,7 +118,8 @@ engine, the markdown renderer and the orchestration core.
 
 ```bash
 # GitHub Actions is the primary pipeline — zero commands after the first push
-git push origin main                       # → https://<your-username>.github.io/swarmsys-ai/
+git push origin main                       
+# → https://<your-username>.github.io/swarmsys-ai/
 
 # alternatives — after npm run build
 vercel --prod                              # → https://<project>.vercel.app
@@ -141,7 +142,7 @@ that builds the bundle and publishes it to GitHub Pages on every push to `main`.
    ```bash
    git init && git add -A && git commit -m "swarmsys-ai: multi-agent console"
    git branch -M main
-   git remote add origin https://github.com/<your-username>/swarmsys-ai.git
+   git remote add origin https://github.com/smir1998/swarmsys-ai.git
    git push -u origin main
    ```
 
@@ -150,7 +151,7 @@ that builds the bundle and publishes it to GitHub Pages on every push to `main`.
 3. **Done.** The workflow runs and the console goes live at:
 
    ```
-   https://<your-username>.github.io/swarmsys-ai/
+   https://smir1998.github.io/swarmsys-ai/
    ```
 
    Every later push to `main` redeploys automatically — zero-downtime, atomic swap.
