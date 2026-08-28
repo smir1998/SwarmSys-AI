@@ -7,6 +7,7 @@ import viteCfg from "../../vite.config.js?raw";
 import tsconfig from "../../tsconfig.json?raw";
 import indexHtml from "../../index.html?raw";
 import readme from "../../README.md?raw";
+import deployWorkflow from "../../.github/workflows/deploy.yml?raw";
 
 import mainTsx from "../main.tsx?raw";
 import appTsx from "../App.tsx?raw";
@@ -44,6 +45,7 @@ const SOURCE_FILES: Record<string, string> = {
   "tsconfig.json": tsconfig,
   "index.html": indexHtml,
   "README.md": readme,
+  ".github/workflows/deploy.yml": deployWorkflow,
   "src/vite-env.d.ts": viteEnv,
   "src/main.tsx": mainTsx,
   "src/App.tsx": appTsx,

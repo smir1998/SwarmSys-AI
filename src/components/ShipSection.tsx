@@ -114,7 +114,7 @@ export default function ShipSection() {
               <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-mut">01 · take the code</p>
               <h3 className="mt-2 font-display text-2xl font-bold uppercase tracking-tight">Source archive</h3>
               <p className="mt-2 font-body text-[13px] leading-relaxed text-mut">
-                Every file of this project — {SOURCE_FILE_COUNT} source files, configs, README — zipped
+                Every file of this project — {SOURCE_FILE_COUNT} files incl. the GitHub Actions workflow, configs, README — zipped
                 client-side from the live bundle. Unzip, <span className="font-mono text-[12px] text-coder">npm install</span>,{" "}
                 <span className="font-mono text-[12px] text-coder">npm run dev</span>.
               </p>
