@@ -139,6 +139,7 @@ export const TOOL_REGISTRY = [
   { name: "web_search", desc: "live Wikipedia search" },
   { name: "github_repos", desc: "live prior-art repository scan" },
   { name: "hf_registry", desc: "live Hugging Face hub metadata" },
+  { name: "model_guard", desc: "Llama Guard 3 + Prompt-Guard classifiers" },
   { name: "osv_scan", desc: "live OSV.dev CVE advisory feed" },
   { name: "knowledge_base", desc: "curated offline facts" },
   { name: "python_exec", desc: "sandboxed interpreter" },
@@ -191,12 +192,15 @@ export const AGENT_MODEL_PREFS: Record<AgentId, ModelRole> = {
   reporter: "general",
 };
 
-/* task-specialized non-LLM models — fixed assignments, always on */
+/* task-specialized non-LLM models — fixed assignments, always on.
+   every id verified against the live hub (huggingface.co/api/models/:id) */
 export const SPECIALIST_MODELS: { id: string; label: string; role: string; usedBy: AgentId[] }[] = [
   { id: "BAAI/bge-m3", label: "BGE-M3", role: "multilingual embeddings", usedBy: ["research"] },
   { id: "BAAI/bge-reranker-v2-m3", label: "BGE Reranker v2", role: "cross-encoder rerank", usedBy: ["research"] },
   { id: "facebook/bart-large-cnn", label: "BART-Large-CNN", role: "extractive summarization", usedBy: ["reporter"] },
-  { id: "distilbert-base-uncased-finetuned-sst-2-english", label: "DistilBERT-SST2", role: "sentiment classification", usedBy: ["qa"] },
+  { id: "distilbert/distilbert-base-uncased-finetuned-sst-2-english", label: "DistilBERT-SST2", role: "sentiment classification", usedBy: ["qa"] },
+  { id: "meta-llama/Llama-Guard-3-1B", label: "Llama Guard 3", role: "content safety classifier", usedBy: ["security"] },
+  { id: "protectai/deberta-v3-base-prompt-injection-v2", label: "Prompt-Guard DeBERTa", role: "injection detector", usedBy: ["security", "qa"] },
 ];
 
 export interface ModelAssignment {

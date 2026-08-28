@@ -293,12 +293,13 @@ export default function ShipSection() {
       <Reveal delay={140}>
         <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_1.25fr]">
           <div className="border border-line bg-panel p-5">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut">tool registry · 11 tools the agents can call</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut">tool registry · 12 tools the agents can call</p>
             <div className="mt-4 grid gap-x-8 gap-y-2.5 sm:grid-cols-2">
               {[
                 ["web_search", "live Wikipedia search"],
                 ["github_repos", "live prior-art scan"],
                 ["hf_registry", "HF hub metadata"],
+                ["model_guard", "Llama Guard 3 + Prompt-Guard"],
                 ["osv_scan", "OSV.dev CVE feed"],
                 ["knowledge_base", "curated facts"],
                 ["python_exec", "sandboxed interpreter"],

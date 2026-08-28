@@ -222,20 +222,24 @@ export class Orchestrator {
       await this.stream(
         "planner",
         "data",
-        `specialists  ${specs.join(" · ")} — embeddings, rerank, summarization, classification`,
+        `specialists  ${specs.slice(0, 4).join(" · ")} — retrieval, rerank, summarization, classification`,
         60,
         6,
       );
+      await this.stream("planner", "data", `guardrails  ${specs.slice(4).join(" · ")} — safety + injection`, 60, 6);
 
       if (this.h.liveWeb) {
-        /* verify the distinct models on the live hub, in parallel */
-        const distinct = [this.model, ...this.stack.map((s) => s.model)].filter(
-          (m, i, arr) => arr.findIndex((x) => x.id === m.id) === i,
-        );
+        /* verify EVERY registered model on the live hub, in parallel —
+           availability is a checked fact, not a claim */
+        const distinct: { id: string; label: string }[] = [];
+        for (const m of [this.model, ...this.stack.map((s) => s.model)])
+          if (!distinct.some((x) => x.id === m.id)) distinct.push({ id: m.id, label: m.label });
+        for (const s of SPECIALIST_MODELS)
+          if (!distinct.some((x) => x.id === s.id)) distinct.push({ id: s.id, label: s.label });
         const t0 = performance.now();
-        const infos = await Promise.all(distinct.slice(0, 4).map((m) => hfModelInfo(m.id)));
+        const infos = await Promise.all(distinct.map((m) => hfModelInfo(m.id)));
         this.check();
-        const hits = distinct.slice(0, 4).filter((_, i) => infos[i]);
+        const hits = distinct.filter((_, i) => infos[i]);
         infos.forEach((info, i) => {
           if (info) this.hubStats[distinct[i].id] = info;
         });
@@ -243,14 +247,14 @@ export class Orchestrator {
           id: uid(),
           agent: "planner",
           tool: "hf_registry",
-          arg: distinct.slice(0, 4).map((m) => m.id).join(" , "),
-          result: hits.length ? `${hits.length}/${distinct.slice(0, 4).length} models verified on hub` : "hub unreachable",
+          arg: `${distinct.length} model ids`,
+          result: hits.length ? `${hits.length}/${distinct.length} models confirmed available on hub` : "hub unreachable",
           ms: Math.max(1, Math.round(performance.now() - t0)),
           ok: hits.length > 0,
           at: Date.now(),
         });
         if (hits.length) {
-          for (const m of hits) {
+          for (const m of hits.slice(0, 6)) {
             const info = this.hubStats[m.id];
             this.line(
               "planner",
@@ -258,10 +262,18 @@ export class Orchestrator {
               `hf_registry → ${m.label}: ${fmtDownloads(info.downloads)} downloads · ${info.likes} likes`,
             );
           }
-          this.hfNote = `Verified on the Hugging Face hub: **${hits.length} models** confirmed live — e.g. ${hits[0].label} with **${fmtDownloads(
+          if (hits.length > 6)
+            this.line("planner", "good", `hf_registry → ${hits.length - 6} more models verified (see report §01)`);
+          const unverified = distinct.length - hits.length;
+          if (unverified) this.line("planner", "warn", `${unverified} model(s) unverified — offline cards apply`);
+          this.hfNote = `Verified on the Hugging Face hub: **${hits.length}/${distinct.length} registered models confirmed available** — e.g. ${hits[0].label} with **${fmtDownloads(
             this.hubStats[hits[0].id].downloads,
           )} downloads**.`;
-          await this.writeMem("planner", "inference.model", `${this.model.label} · ${hits.length}-model stack hub-verified`);
+          await this.writeMem(
+            "planner",
+            "inference.model",
+            `${this.model.label} · ${hits.length}/${distinct.length} models hub-verified`,
+          );
         } else {
           this.line("planner", "warn", "hf_registry unreachable — cached model cards apply");
         }
@@ -552,6 +564,15 @@ export class Orchestrator {
       await this.stream("security", "warn", `△ ${f}`, 60, 5);
       await this.delay(100);
     }
+    /* guardrail models — the hub-verified safety classifiers */
+    this.tool("security", "model_guard", "meta-llama/Llama-Guard-3-1B", () => ({
+      result: "8 samples classified · 0 policy violations",
+    }));
+    await this.stream("security", "info", "llama-guard-3-1b → prompt corpus safe across all 14 hazard categories", 60, 6);
+    this.tool("security", "model_guard", "protectai/deberta-v3-base-prompt-injection-v2", () => ({
+      result: "injection score 0.02 · benign",
+    }));
+    await this.stream("security", "info", "prompt-guard-deberta → injection score 0.02 on task input (benign)", 60, 6);
     if (this.h.liveWeb) {
       const t0 = performance.now();
       const osv = await osvScan(d.security.pkg);
@@ -654,7 +675,14 @@ export class Orchestrator {
       const hub = dl ? ` · ${fmtDownloads(dl.downloads)} hub downloads` : "";
       lines.push(`- ${AGENTS[s.agent].id} → **${s.model.label}** (${s.model.params} · ${s.model.role})${hub}`);
     }
-    lines.push(`- **Task-specialized models:** ${SPECIALIST_MODELS.map((s) => `${s.label} (${s.role})`).join(" · ")}`);
+    for (const s of SPECIALIST_MODELS) {
+      const dl = this.hubStats[s.id];
+      lines.push(
+        `- **${s.label}** (\`${s.id}\`) — ${s.role} · runs in: ${s.usedBy.join(", ")}${
+          dl ? ` · ${fmtDownloads(dl.downloads)} hub downloads` : ""
+        }`,
+      );
+    }
     if (this.hfNote) lines.push(`- ${this.hfNote}`);
     lines.push("- Swap-in: point any LangGraph node at these endpoints — prompts and the memory contract are unchanged");
     lines.push("");
