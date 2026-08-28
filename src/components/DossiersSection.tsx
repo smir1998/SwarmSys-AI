@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AGENTS, AGENT_ORDER } from "../lib/knowledge";
+import { AGENTS, AGENT_MODEL_PREFS, AGENT_ORDER, HF_MODELS, SPECIALIST_MODELS } from "../lib/knowledge";
 import type { AgentId } from "../lib/types";
 import { Icon, Reveal, SectionHead } from "../lib/ui";
 
@@ -100,6 +100,34 @@ export default function DossiersSection() {
                           {t}()
                         </span>
                       ))}
+                    </div>
+                  </div>
+                  <div className="border border-line bg-panel p-5">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut">model assignments</p>
+                    <div className="mt-3 space-y-1.5">
+                      <p className="font-mono text-[10.5px]">
+                        <span className="mr-1.5 text-[9px] uppercase tracking-[0.14em] text-mut">llm</span>
+                        {HF_MODELS.filter((m) => m.role === AGENT_MODEL_PREFS[sel]).map((m) => (
+                          <span
+                            key={m.id}
+                            className="mr-1.5 inline-block border px-1.5 py-0.5 text-research"
+                            style={{ borderColor: "var(--line)" }}
+                          >
+                            {m.label} <span className="opacity-60">{m.params}</span>
+                          </span>
+                        ))}
+                      </p>
+                      {SPECIALIST_MODELS.filter((s) => s.usedBy.includes(sel)).map((s) => (
+                        <p key={s.id} className="font-mono text-[10.5px]">
+                          <span className="mr-1.5 text-[9px] uppercase tracking-[0.14em] text-mut">spec</span>
+                          <span className="border border-line px-1.5 py-0.5 text-coder">
+                            {s.label} <span className="opacity-60">· {s.role}</span>
+                          </span>
+                        </p>
+                      ))}
+                      {!SPECIALIST_MODELS.some((s) => s.usedBy.includes(sel)) && (
+                        <p className="font-mono text-[9.5px] text-mut/60">no fixed specialist — rides the allocated LLM</p>
+                      )}
                     </div>
                   </div>
                   <div className="border border-line bg-panel p-5">

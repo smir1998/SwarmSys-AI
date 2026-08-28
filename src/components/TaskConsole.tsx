@@ -2,6 +2,13 @@ import { HF_MODELS, PRESETS, type Preset } from "../lib/knowledge";
 import type { Phase } from "../lib/types";
 import { Icon } from "../lib/ui";
 
+const ROLE_COLOR: Record<string, string> = {
+  reasoning: "var(--c-research)",
+  code: "var(--c-coder)",
+  general: "var(--amber)",
+  edge: "var(--mut)",
+};
+
 export default function TaskConsole({
   task,
   setTask,
@@ -133,28 +140,40 @@ export default function TaskConsole({
         </div>
       </div>
 
-      {/* Hugging Face model selector */}
+      {/* Hugging Face model selector — role-tagged, planner allocates per agent */}
       <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
         <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-mut">hf model:</span>
         {HF_MODELS.map((m) => {
           const active = m.id === modelId;
+          const rc = ROLE_COLOR[m.role];
           return (
             <button
               key={m.id}
               onClick={() => setModelId(m.id)}
               disabled={running}
-              title={`${m.id} · ${m.ctx} context · quality ×${m.quality} · speed ×${m.speed}`}
-              className={`border px-2.5 py-1 font-mono text-[10px] transition-all duration-200 disabled:opacity-40 ${
-                active
-                  ? "border-amber bg-amber/10 text-amber"
-                  : "border-line text-mut hover:border-line2 hover:text-ink"
+              title={`${m.id} · ${m.role} · ${m.ctx} context · quality ×${m.quality} · speed ×${m.speed} — the planner allocates role-matched specialists to every agent`}
+              className={`flex items-center gap-1.5 border px-2.5 py-1 font-mono text-[10px] transition-all duration-200 disabled:opacity-40 ${
+                active ? "bg-panel2" : "text-mut hover:border-line2 hover:text-ink"
               }`}
+              style={
+                active
+                  ? { borderColor: rc, color: rc, boxShadow: `0 0 16px -8px ${rc}` }
+                  : { borderColor: "var(--line)" }
+              }
             >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${active ? "led-on" : ""}`}
+                style={{ background: active ? rc : "var(--line2)" }}
+              />
               {m.label}
-              <span className={`ml-1.5 ${active ? "text-amber/70" : "text-mut/60"}`}>{m.params}</span>
+              <span className="opacity-60">{m.params}</span>
             </button>
           );
         })}
+        <span className="ml-auto hidden font-mono text-[9px] uppercase tracking-[0.14em] text-mut/70 lg:inline">
+          <span className="text-research">●</span> reasoning <span className="text-coder ml-1.5">●</span> code{" "}
+          <span className="text-amber ml-1.5">●</span> general <span className="text-mut ml-1.5">●</span> edge
+        </span>
       </div>
 
       {/* predefined preset cases — task + model + policy in one click */}

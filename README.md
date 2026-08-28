@@ -7,8 +7,8 @@
 **A multi-agent AI system that runs entirely in your browser.**
 
 Eight specialized agents decompose, research, build, test, review, harden and document a task end-to-end —
-coordinated through one shared memory store, with tool calls, live web evidence, selectable Hugging Face
-models, a human-approval gate, a reviewer patch loop and an autonomous scheduler. No API keys, no backend,
+coordinated through one shared memory store, with tool calls, live web evidence, a role-allocated Hugging
+Face model stack, a human-approval gate, a reviewer patch loop and an autonomous scheduler. No API keys, no backend,
 no setup: it ships as a single static build.
 
 The specialists are deterministic by design — the orchestration layer (topology, memory contracts, gates,
@@ -53,7 +53,7 @@ User request
 
 | Agent | Job | Writes to shared memory |
 |-------|-----|--------------------------|
-| **Planner** | Understands the goal, decomposes into subtasks, assigns owners | `plan.subtasks`, `inference.model` |
+| **Planner** | Understands the goal, decomposes into subtasks, assigns owners **and per-agent models** | `plan.subtasks`, `agents.models`, `inference.model` |
 | **Research** | Live web + prior art + datasets, sealed as memory entries | `research.stack`, `research.metrics`, `research.live.*` |
 | **Coder** | Production-ready Python, honors the locked research contract | `code.artifact`, `code.tests` |
 | **QA** | Unit/edge matrix, coverage, mutation score | `qa.coverage`, `qa.edge_cases` |
@@ -72,8 +72,12 @@ memory store that every agent reads and writes, 11 callable tools, a human-appro
 
 - **Live API integrations** — Wikipedia, GitHub, the Hugging Face hub and the OSV.dev advisory feed, all
   CORS-friendly, with graceful offline fallbacks behind the `live web` toggle
-- **Hugging Face models** — five selectable hub models; each run logs the choice, the hub verifies
-  downloads/likes live, and the model's quality factor shapes review scoring
+- **Hugging Face model stack** — eight role-tagged hub models (general / code / reasoning / edge, incl.
+  Llama 3.3 70B, DeepSeek R1 70B, Qwen2.5-Coder 32B). The **planner allocates a role-matched specialist
+  to every agent** — reasoning models plan and review, code models build and audit — plus fixed
+  task-specialized models: BGE-M3 embeddings, BGE Reranker v2, BART-Large-CNN summarization and
+  DistilBERT-SST2 classification. The hub verifies each model's downloads/likes live, quality factors
+  shape review scoring, and speed factors drive code-streaming pace
 - **Embedded SQL engine** — `SELECT … WHERE … ORDER BY … LIMIT` over a seeded ledger DB
 - **Report exports** — PDF typeset client-side (jsPDF, lazy-loaded) and raw markdown, both served through
   an in-app **Report Viewer** with inline preview, Save file, Copy and a New-tab fallback
@@ -88,7 +92,7 @@ A four-panel interface — toggle horizontally, never scroll past everything:
 
 | Panel | Contents |
 |-------|----------|
-| **01 Console** | task input, six preset cases, HF model selector, approval gate, live pipeline, memory/tools/ledger rails, scheduler |
+| **01 Console** | task input, six preset cases, role-tagged HF model selector, approval gate, live pipeline with per-agent model tags, memory/tools/ledger rails, scheduler |
 | **02 Architecture** | the animated orchestration DAG |
 | **03 Agents** | system prompts, tool belts and memory contracts for all eight specialists |
 | **04 Ship It** | source archive download, deploy pack, per-target commands, ship checklist, LangGraph port |
@@ -96,9 +100,9 @@ A four-panel interface — toggle horizontally, never scroll past everything:
 Keyboard: `1`–`4` switch panels. Toggles: **auto-approve** (skip the gate), **live web** (real API evidence).
 
 **Preset cases** — six predefined configurations bundle the task, the Hugging Face model and the swarm
-policy into one click: *Spam sweep* (Φ-3.5, gate bypassed), *Support bot* (Qwen Coder, human gate),
-*RAG audit* (DeepSeek R1, full review), *Sentiment board* (Llama, auto-approved), *News crawl*
-(Mistral, offline), *Demand forecast* (Llama, offline). Each maps to a curated task domain with real
+policy into one click: *Spam sweep* (Φ-3.5 edge, gate bypassed), *Support bot* (Qwen Coder 7B, human gate),
+*RAG audit* (DeepSeek R1 70B flagship stack, full review), *Sentiment board* (Llama 3.3 70B, auto-approved),
+*News crawl* (Mistral, offline), *Demand forecast* (Llama 3.1 8B, offline). Each maps to a curated task domain with real
 research notes and production-grade Python; anything else routes to a generic fallback domain.
 
 ## Live deployment
@@ -178,7 +182,7 @@ engine, the SQL engine, the markdown renderer, the PDF typesetter, the deploy to
     │   └── NotifyToasts.tsx     # toast stream + browser push
     └── lib/
         ├── engine.ts            # the Orchestrator — gates, fan-outs, patch loop, report
-        ├── knowledge.ts         # agent registry, 7 domains, 5 HF models, 6 presets, 11 tools
+        ├── knowledge.ts         # agent registry, 7 domains, 8 HF models + 4 specialists, 6 presets, 11 tools
         ├── web.ts               # live Wikipedia / GitHub / HF hub / OSV.dev clients
         ├── sqlite.ts            # embedded SQL engine
         ├── pdf.ts               # client-side report typesetting

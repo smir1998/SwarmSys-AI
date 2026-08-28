@@ -1,5 +1,5 @@
-import { AGENTS, HF_MODELS, detectDomain } from "./knowledge";
-import type { Domain, ModelDef } from "./knowledge";
+import { AGENTS, HF_MODELS, SPECIALIST_MODELS, detectDomain, modelStackFor } from "./knowledge";
+import type { Domain, ModelAssignment, ModelDef } from "./knowledge";
 import { execSQL } from "./sqlite";
 import { ltmCountFor } from "./store";
 import type {
@@ -32,7 +32,7 @@ export interface OrchestratorOpts {
   operator: string;
   origin: Origin;
   onPhase: (p: Phase) => void;
-  onAgent: (a: AgentId, status: AgentStatus, meta?: string) => void;
+  onAgent: (a: AgentId, status: AgentStatus, meta?: string, model?: string) => void;
   onLine: (a: AgentId, line: StageLine) => void;
   onClear: () => void;
   onSubtasks: (st: Subtask[]) => void;
@@ -52,6 +52,8 @@ export class Orchestrator {
   private gate: { resolve: (v: "approve" | "revise") => void } | null = null;
   private webSources: WebSource[] = [];
   private model: ModelDef = HF_MODELS[0];
+  private stack: ModelAssignment[] = [];
+  private hubStats: Record<string, HfModelInfo> = {};
   private hfNote = "";
   private osvNote = "";
 
@@ -92,7 +94,8 @@ export class Orchestrator {
     this.h.onLine(agent, { id: uid(), kind, text });
   }
   private async think(agent: AgentId, ms: number, meta: string) {
-    this.h.onAgent(agent, "thinking", meta);
+    const modelLabel = this.stack.find((s) => s.agent === agent)?.model.label;
+    this.h.onAgent(agent, "thinking", meta, modelLabel);
     await this.delay(ms);
     this.h.onAgent(agent, "working", meta);
   }
@@ -175,6 +178,8 @@ export class Orchestrator {
   async run(task: string, autoApprove: boolean, ltm: LtmEntry[], modelId: string) {
     const t0 = performance.now();
     this.model = HF_MODELS.find((m) => m.id === modelId) ?? HF_MODELS[0];
+    this.stack = [];
+    this.hubStats = {};
     this.hfNote = "";
     this.osvNote = "";
     this.webSources = [];
@@ -204,17 +209,69 @@ export class Orchestrator {
         "info",
         `inference model → ${this.model.label} (${this.model.id}) · ${this.model.params} params · quality ×${this.model.quality}`,
       );
+
+      /* model-stack allocation — a specialist per agent, not one LLM for all */
+      this.stack = modelStackFor(this.model);
+      this.line("planner", "sys", "allocating model stack → one specialist per agent");
+      const llmRows = this.stack
+        .filter((s) => s.model.id !== this.model.id || s.agent === "planner")
+        .map((s) => `${AGENTS[s.agent].id}→${s.model.label}`);
+      await this.stream("planner", "data", `stack  ${llmRows.slice(0, 4).join(" · ")}`, 60, 6);
+      if (llmRows.length > 4) await this.stream("planner", "data", `stack  ${llmRows.slice(4).join(" · ")}`, 60, 6);
+      const specs = SPECIALIST_MODELS.map((s) => s.label);
+      await this.stream(
+        "planner",
+        "data",
+        `specialists  ${specs.join(" · ")} — embeddings, rerank, summarization, classification`,
+        60,
+        6,
+      );
+
       if (this.h.liveWeb) {
-        const hub = await this.hfRegistry();
-        if (hub) {
-          this.hfNote = `Verified on the Hugging Face hub: **${fmtDownloads(hub.downloads)} downloads** · ${hub.likes} likes · pipeline \`${hub.pipeline}\`.`;
-          this.line("planner", "good", `hf_registry → ${fmtDownloads(hub.downloads)} downloads · ${hub.likes} likes on the hub`);
-          await this.writeMem("planner", "inference.model", `${this.model.label} · hub-verified`);
+        /* verify the distinct models on the live hub, in parallel */
+        const distinct = [this.model, ...this.stack.map((s) => s.model)].filter(
+          (m, i, arr) => arr.findIndex((x) => x.id === m.id) === i,
+        );
+        const t0 = performance.now();
+        const infos = await Promise.all(distinct.slice(0, 4).map((m) => hfModelInfo(m.id)));
+        this.check();
+        const hits = distinct.slice(0, 4).filter((_, i) => infos[i]);
+        infos.forEach((info, i) => {
+          if (info) this.hubStats[distinct[i].id] = info;
+        });
+        this.h.onTool({
+          id: uid(),
+          agent: "planner",
+          tool: "hf_registry",
+          arg: distinct.slice(0, 4).map((m) => m.id).join(" , "),
+          result: hits.length ? `${hits.length}/${distinct.slice(0, 4).length} models verified on hub` : "hub unreachable",
+          ms: Math.max(1, Math.round(performance.now() - t0)),
+          ok: hits.length > 0,
+          at: Date.now(),
+        });
+        if (hits.length) {
+          for (const m of hits) {
+            const info = this.hubStats[m.id];
+            this.line(
+              "planner",
+              "good",
+              `hf_registry → ${m.label}: ${fmtDownloads(info.downloads)} downloads · ${info.likes} likes`,
+            );
+          }
+          this.hfNote = `Verified on the Hugging Face hub: **${hits.length} models** confirmed live — e.g. ${hits[0].label} with **${fmtDownloads(
+            this.hubStats[hits[0].id].downloads,
+          )} downloads**.`;
+          await this.writeMem("planner", "inference.model", `${this.model.label} · ${hits.length}-model stack hub-verified`);
         } else {
-          this.line("planner", "warn", "hf_registry unreachable — cached model card applies");
+          this.line("planner", "warn", "hf_registry unreachable — cached model cards apply");
         }
       }
-      await this.delay(380);
+      await this.writeMem(
+        "planner",
+        "agents.models",
+        this.stack.map((s) => `${AGENTS[s.agent].id}:${s.model.label}`).join(" · "),
+      );
+      await this.delay(300);
       this.line("planner", "sys", "decomposing goal → subtask graph");
       await this.delay(480);
       const reporterRow = d.subtasks.find((s) => s.owner === "reporter") ?? {
@@ -381,10 +438,12 @@ export class Orchestrator {
     await this.stream("coder", "info", `scaffold → ${d.code.file}`, 40, 4);
     this.tool("coder", "python_exec", "ast.parse — syntax gate", () => ({ result: "parsed clean, 0 syntax errors" }));
 
+    const coderSpeed = this.stack.find((s) => s.agent === "coder")?.model.speed ?? 1;
+    this.line("coder", "info", `generation pace → ×${coderSpeed.toFixed(2)} from ${this.stack.find((s) => s.agent === "coder")?.model.label ?? this.model.label}`);
     this.line("coder", "code", "");
     for (const ln of d.code.lines) {
       this.h.onLine("coder", { id: uid(), kind: "code", text: ln });
-      await this.delay(26);
+      await this.delay(Math.max(12, Math.round(26 / coderSpeed)));
     }
 
     this.tool("coder", "code_lint", d.code.file, () => ({ result: "0 errors, 0 warnings (ruff)" }));
@@ -450,9 +509,10 @@ export class Orchestrator {
     }
     await this.writeMem("reviewer", "review.flags", isRerun ? "all clear after patch round" : d.review.flags.join("; "));
 
-    this.line("reviewer", "info", `inference model ${this.model.label} · quality factor ×${this.model.quality} applied`);
+    const revModel = this.stack.find((s) => s.agent === "reviewer")?.model ?? this.model;
+    this.line("reviewer", "info", `review model ${revModel.label} · quality factor ×${revModel.quality} applied`);
     const raw = isRerun ? 88 + Math.round(researchScore / 25) : 74 + (researchScore % 7);
-    const score = Math.max(78, Math.min(99, Math.round(raw * this.model.quality)));
+    const score = Math.max(78, Math.min(99, Math.round(raw * revModel.quality)));
     await this.stream("reviewer", "good", `quality score → ${score}/100  ${score >= 85 ? "(ship)" : "(below gate)"}`, 40, 4);
     await this.writeMem("reviewer", "review.score", `${score}/100`);
     this.done("reviewer", `${score}/100`);
@@ -562,24 +622,6 @@ export class Orchestrator {
     this.done("devops", "contract sealed");
   }
 
-  /* live Hugging Face hub metadata (planner tool) */
-  private async hfRegistry(): Promise<HfModelInfo | null> {
-    const t0 = performance.now();
-    const r = await hfModelInfo(this.model.id);
-    this.check();
-    this.h.onTool({
-      id: uid(),
-      agent: "planner",
-      tool: "hf_registry",
-      arg: this.model.id,
-      result: r ? `hub: ${fmtDownloads(r.downloads)} downloads · ${r.likes} likes` : "hub unreachable — cached card",
-      ms: Math.max(1, Math.round(performance.now() - t0)),
-      ok: !!r,
-      at: Date.now(),
-    });
-    return r;
-  }
-
   /* ————— A5 · reporter agent ————— */
   private async runReporter(task: string, d: Domain, score: number, wallMs: number): Promise<string> {
     await this.think("reporter", 600, "compiling report");
@@ -603,11 +645,18 @@ export class Orchestrator {
       `**Executive summary.** Eight agents decomposed this into ${d.subtasks.length + EXTRA_ROWS.length} subtasks and shipped a reviewed, tested, security-audited implementation in ${(wallMs / 1000).toFixed(1)}s wall time. Quality gate: **${score}/100**. Coverage: **${d.qa.coverage}%**. Locked stack: ${d.stack.join(", ")}.`,
     );
     lines.push("");
-    lines.push("## 01 · Inference Model");
-    lines.push(`- **${this.model.label}** (\`${this.model.id}\`) via the Hugging Face hub — ${this.model.params} params · ${this.model.ctx} context · tag: ${this.model.tag}`);
-    lines.push(`- Quality factor **×${this.model.quality}** · speed **×${this.model.speed}** applied across all generative steps`);
+    lines.push("## 01 · Inference Model & Stack");
+    lines.push(`- **Primary:** ${this.model.label} (\`${this.model.id}\`) — ${this.model.params} params · ${this.model.ctx} context · ${this.model.role}`);
+    lines.push(`- Quality factor **×${this.model.quality}** · speed **×${this.model.speed}** set the run's envelope`);
+    lines.push("- **Per-agent allocation** (planner-assigned specialists, not one LLM for everything):");
+    for (const s of this.stack) {
+      const dl = this.hubStats[s.model.id];
+      const hub = dl ? ` · ${fmtDownloads(dl.downloads)} hub downloads` : "";
+      lines.push(`- ${AGENTS[s.agent].id} → **${s.model.label}** (${s.model.params} · ${s.model.role})${hub}`);
+    }
+    lines.push(`- **Task-specialized models:** ${SPECIALIST_MODELS.map((s) => `${s.label} (${s.role})`).join(" · ")}`);
     if (this.hfNote) lines.push(`- ${this.hfNote}`);
-    lines.push("- Swap-in: point any LangGraph node at this endpoint — prompts and the memory contract are unchanged");
+    lines.push("- Swap-in: point any LangGraph node at these endpoints — prompts and the memory contract are unchanged");
     lines.push("");
     lines.push("## 02 · Plan (approved)");
     const planRows = [...d.subtasks.filter((s) => s.owner !== "reporter"), ...EXTRA_ROWS, d.subtasks.find((s) => s.owner === "reporter")!];
