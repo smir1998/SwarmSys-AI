@@ -75,9 +75,10 @@ memory store that every agent reads and writes, 11 callable tools, a human-appro
 - **Hugging Face model stack** — eight role-tagged hub models (general / code / reasoning / edge, incl.
   Llama 3.3 70B, DeepSeek R1 70B, Qwen2.5-Coder 32B). The **planner allocates a role-matched specialist
   to every agent** — reasoning models plan and review, code models build and audit — plus fixed
-  task-specialized models: BGE-M3 embeddings, BGE Reranker v2, BART-Large-CNN summarization and
-  DistilBERT-SST2 classification. The hub verifies each model's downloads/likes live, quality factors
-  shape review scoring, and speed factors drive code-streaming pace
+  task-specialized models: BGE-M3 embeddings, BGE Reranker v2, BART-Large-CNN summarization,
+  DistilBERT-SST2 classification and the Llama Guard 3 / Prompt-Guard-DeBERTa safety pair that the
+  security agent runs on every audit. The hub verifies **every registered model's** availability and
+  downloads live, quality factors shape review scoring, and speed factors drive code-streaming pace
 - **Embedded SQL engine** — `SELECT … WHERE … ORDER BY … LIMIT` over a seeded ledger DB
 - **Report exports** — PDF typeset client-side (jsPDF, lazy-loaded) and raw markdown, both served through
   an in-app **Report Viewer** with inline preview, Save file, Copy and a New-tab fallback
@@ -182,7 +183,7 @@ engine, the SQL engine, the markdown renderer, the PDF typesetter, the deploy to
     │   └── NotifyToasts.tsx     # toast stream + browser push
     └── lib/
         ├── engine.ts            # the Orchestrator — gates, fan-outs, patch loop, report
-        ├── knowledge.ts         # agent registry, 7 domains, 8 HF models + 4 specialists, 6 presets, 11 tools
+        ├── knowledge.ts         # agent registry, 7 domains, 8 HF models + 6 specialists, 6 presets, 12 tools
         ├── web.ts               # live Wikipedia / GitHub / HF hub / OSV.dev clients
         ├── sqlite.ts            # embedded SQL engine
         ├── pdf.ts               # client-side report typesetting
