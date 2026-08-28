@@ -226,7 +226,7 @@ export default function App() {
                   ? Date.now()
                   : prev[a].startedAt,
               meta: meta !== undefined ? meta : prev[a].meta,
-              model: model !== undefined ? model : prev[a].model,
+              model: model ?? prev[a].model,
             },
           })),
         onLine: (a, line) => setStages((prev) => ({ ...prev, [a]: [...prev[a], line] })),

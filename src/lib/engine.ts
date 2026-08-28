@@ -178,7 +178,7 @@ export class Orchestrator {
   async run(task: string, autoApprove: boolean, ltm: LtmEntry[], modelId: string) {
     const t0 = performance.now();
     this.model = HF_MODELS.find((m) => m.id === modelId) ?? HF_MODELS[0];
-    this.stack = [];
+    this.stack = modelStackFor(this.model);
     this.hubStats = {};
     this.hfNote = "";
     this.osvNote = "";
@@ -210,8 +210,8 @@ export class Orchestrator {
         `inference model → ${this.model.label} (${this.model.id}) · ${this.model.params} params · quality ×${this.model.quality}`,
       );
 
-      /* model-stack allocation — a specialist per agent, not one LLM for all */
-      this.stack = modelStackFor(this.model);
+      /* model-stack allocation — a specialist per agent, not one LLM for all
+         (computed at run start; announced here as the planner's decision) */
       this.line("planner", "sys", "allocating model stack → one specialist per agent");
       const llmRows = this.stack
         .filter((s) => s.model.id !== this.model.id || s.agent === "planner")
