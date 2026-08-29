@@ -1,19 +1,15 @@
 # SwarmSys AI
 
-> 🚀 **Live deployment:** [https://your-username.github.io/swarmsys-ai/](https://your-username.github.io/swarmsys-ai/)
+> 🚀 **Live deployment:** [https://smir1998.github.io/swarmsys-ai/](https://smir1998.github.io/swarmsys-ai/)
+> — shipped by **GitHub Actions** on every push to `main`.
 >
-> _Shipped by GitHub Actions on every push to `main` — swap in your handle after the first green run._
+> see [Deploy via GitHub Actions](#deploy-via-github-actions)._
 
 **A multi-agent AI system that runs entirely in your browser.**
 
-Eight specialized agents decompose, research, build, test, review, harden and document a task end-to-end —
-coordinated through one shared memory store, with tool calls, live web evidence, a role-allocated Hugging
-Face model stack, a human-approval gate, a reviewer patch loop and an autonomous scheduler. No API keys, no backend,
-no setup: it ships as a single static build.
+Eight specialized agents decompose, research, build, test, review, harden and document a task end-to-end — coordinated through one shared memory store,with tool calls, live web evidence, a human-approval gate, a reviewer patch loop and an autonomous scheduler. No API keys, no backend, no setup: it ships as a single static build.
 
-The specialists are deterministic by design — the orchestration layer (topology, memory contracts, gates,
-tools) is the point, and every prompt and contract is written to carry over unchanged when you swap in
-real LLM nodes.
+The specialists are deterministic by design — the orchestration layer (topology, memory contracts, gates, tools) is the point, and every prompt and contract is written to carry over unchanged when you swap in real LLM nodes.
 
 ---
 
@@ -51,16 +47,16 @@ User request
 
 ## The eight agents
 
-| Agent | Job | Writes to shared memory |
-|-------|-----|--------------------------|
-| **Planner** | Understands the goal, decomposes into subtasks, assigns owners **and per-agent models** | `plan.subtasks`, `agents.models`, `inference.model` |
-| **Research** | Live web + prior art + datasets, sealed as memory entries | `research.stack`, `research.metrics`, `research.live.*` |
-| **Coder** | Production-ready Python, honors the locked research contract | `code.artifact`, `code.tests` |
-| **QA** | Unit/edge matrix, coverage, mutation score | `qa.coverage`, `qa.edge_cases` |
-| **Reviewer** | Lints, scores 0–100, gates the ship, one patch round below 85 | `review.score`, `review.flags` |
-| **Security** | SAST pass + live OSV.dev CVE feed; critical findings block | `security.findings`, `security.verdict` |
-| **DevOps** | Dockerfile, CI stages, rollback contract | `deploy.dockerfile`, `deploy.ci`, `deploy.rollback` |
-| **Reporter** | Merges everything into an 11-section report + typeset PDF | `report.md` |
+| # | Agent | Job | Writes to shared memory |
+|---|-------|-----|-------------------------|
+| A1| **Planner** | Parses the goal, grounds it in long-term preferences, decomposes into subtasks, validates the inference model against the HF hub | `plan.subtasks`, `inference.model` |
+| A2| **Research** | Collects evidence — live Wikipedia/GitHub hits, datasets, metrics — and seals it into memory | `research.stack`, `research.metrics`, `research.live.sources` |
+| A3| **Coder** | Generates typed, commented Python with tests; honors the locked research contract; queries the embedded SQL ledger | `code.artifact`, `code.tests` |
+| A4| **QA** | Runs the unit/edge/property matrix, measures coverage, mutation-tests | `qa.coverage`, `qa.edge_cases` |
+| A5| **Reviewer** | Lints, tests, scores 0–100. Below 85 it hands the Coder one precise patch list | `review.score`, `review.flags` |
+| A6| **Security** | SAST for secrets/injection + live OSV.dev CVE scan; critical findings block the ship | `security.verdict`, `security.findings` |
+| A7| **DevOps** | Dockerfile, CI workflow, rollback plan — the deployment contract | `deploy.contract` |
+| A8| **Reporter** | Merges every stage into the final report; exports Markdown and a typeset PDF | `report.md` |
 
 ## Features
 
@@ -110,15 +106,16 @@ research notes and production-grade Python; anything else routes to a generic fa
 
 | | |
 |---|---|
-| 🔗 **URL** | [https://your-username.github.io/swarmsys-ai/](https://your-username.github.io/swarmsys-ai/) — GitHub Pages |
-| 🤖 **Pipeline** | [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) — builds and publishes on every push to `main` |
+| 🔗 **URL** | [https://smir1998.github.io/swarmsys-ai/](https://smir1998.github.io/swarmsys-ai/) — GitHub Pages |
+| 🤖 **Pipeline** | [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) — builds and publishes on every push |
 | 📦 **Build** | `npm ci && npm run build -- --base=./` → static `dist/` (zero server, zero keys) |
 | ⚡ **Deploy** | `git push origin main` — Actions does the rest |
 | 🗂 **Manifests** | `vercel.json` · `netlify.toml` · `render.yaml` · `Dockerfile` + `nginx.conf` — downloadable from the in-app **Ship It** panel |
 
 ```bash
 # GitHub Actions is the primary pipeline — zero commands after the first push
-git push origin main                       # → https://<your-username>.github.io/swarmsys-ai/
+git push origin main                       
+# → https://<your-username>.github.io/swarmsys-ai/
 
 # alternatives — after npm run build
 vercel --prod                              # → https://<project>.vercel.app
@@ -136,14 +133,26 @@ The repository ships a zero-config Pages pipeline: [`.github/workflows/deploy.ym
 1. Create a GitHub repository and push this project (`git add -A && git commit && git push origin main`).
 2. In the repo: **Settings → Pages → Source: GitHub Actions**.
 3. Done — every push builds and publishes to `https://<your-username>.github.io/swarmsys-ai/`.
+   ```bash
+   git init && git add -A && git commit -m "swarmsys-ai: multi-agent console"
+   git branch -M main
+   git remote add origin https://github.com/smir1998/swarmsys-ai.git
+   git push -u origin main
+   ```
 
 The workflow runs on pushes to `main` and on manual dispatch: install with cached deps → build with
 `--base=./` (relative asset paths, Pages-safe) → upload artifact → deploy with zero-downtime replacement.
 It ships inside the downloadable source archive too, so the zip from **Ship It** deploys as-is.
 
-```markdown
-![deploy](https://github.com/<your-username>/swarmsys-ai/actions/workflows/deploy.yml/badge.svg)
-```
+3. **Done.** The workflow runs and the console goes live at:
+
+   ```
+   https://smir1998.github.io/swarmsys-ai/
+   ```
+
+   Every later push to `main` redeploys automatically — zero-downtime, atomic swap.
+
+### Pipeline anatomy
 
 ## Run it locally
 
