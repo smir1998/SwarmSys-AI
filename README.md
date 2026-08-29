@@ -3,11 +3,13 @@
 > 🚀 **Live deployment:** [https://smir1998.github.io/swarmsys-ai/](https://smir1998.github.io/swarmsys-ai/)
 > — shipped by **GitHub Actions** on every push to `main`.
 >
-> see [Deploy via GitHub Actions](#deploy-via-github-actions)._
+> ⚠️ If this link shows *"There isn't a GitHub Pages site here"*, the site isn't published yet:
+> push this repo, then set **Settings → Pages → Source: GitHub Actions** — the URL goes live
+> 1–2 min after the first green run. See [Deploy via GitHub Actions](#deploy-via-github-actions).
 
 **A multi-agent AI system that runs entirely in your browser.**
 
-Eight specialized agents decompose, research, build, test, review, harden and document a task end-to-end — coordinated through one shared memory store,with tool calls, live web evidence, a human-approval gate, a reviewer patch loop and an autonomous scheduler. No API keys, no backend, no setup: it ships as a single static build.
+Eight specialized agents decompose, research, build, test, review, harden and document a task end-to-end — coordinated through one shared memory store, with tool calls, live web evidence, a human-approval gate, a reviewer patch loop and an autonomous scheduler. No API keys, no backend, no setup: it ships as a single static build.
 
 The specialists are deterministic by design — the orchestration layer (topology, memory contracts, gates, tools) is the point, and every prompt and contract is written to carry over unchanged when you swap in real LLM nodes.
 
@@ -114,8 +116,7 @@ research notes and production-grade Python; anything else routes to a generic fa
 
 ```bash
 # GitHub Actions is the primary pipeline — zero commands after the first push
-git push origin main                       
-# → https://<your-username>.github.io/swarmsys-ai/
+git push origin main                       # → https://smir1998.github.io/swarmsys-ai/
 
 # alternatives — after npm run build
 vercel --prod                              # → https://<project>.vercel.app
@@ -123,36 +124,36 @@ npx netlify-cli deploy --prod --dir=dist   # → https://<site>.netlify.app
 docker build -t swarmsys-ai . && docker run -d -p 8080:80 swarmsys-ai  # → http://localhost:8080
 ```
 
-> After your first green run, replace `<your-username>` above (and in the banner at the top of this file)
-> with your real handle. The **Ship It → checklist** inside the app tracks this step.
-
 ## Deploy via GitHub Actions
 
 The repository ships a zero-config Pages pipeline: [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
 
-1. Create a GitHub repository and push this project (`git add -A && git commit && git push origin main`).
-2. In the repo: **Settings → Pages → Source: GitHub Actions**.
-3. Done — every push builds and publishes to `https://<your-username>.github.io/swarmsys-ai/`.
-   ```bash
-   git init && git add -A && git commit -m "swarmsys-ai: multi-agent console"
-   git branch -M main
-   git remote add origin https://github.com/smir1998/swarmsys-ai.git
-   git push -u origin main
-   ```
+```bash
+git init && git add -A && git commit -m "swarmsys-ai: multi-agent console"
+git branch -M main
+git remote add origin https://github.com/smir1998/swarmsys-ai.git
+git push -u origin main
+```
 
-The workflow runs on pushes to `main` and on manual dispatch: install with cached deps → build with
-`--base=./` (relative asset paths, Pages-safe) → upload artifact → deploy with zero-downtime replacement.
-It ships inside the downloadable source archive too, so the zip from **Ship It** deploys as-is.
+1. **Push** the project (above) — the first push triggers the workflow automatically.
+2. In the repo: **Settings → Pages → Source: GitHub Actions** (one-time toggle).
+3. **Done.** The console goes live at `https://smir1998.github.io/swarmsys-ai/` 1–2 minutes after the
+   first green run. Every later push to `main` redeploys automatically — zero-downtime, atomic swap.
 
-3. **Done.** The workflow runs and the console goes live at:
+### Seeing "There isn't a GitHub Pages site here"?
 
-   ```
-   https://smir1998.github.io/swarmsys-ai/
-   ```
+The URL is right — the site just isn't published yet. Check, in order:
 
-   Every later push to `main` redeploys automatically — zero-downtime, atomic swap.
+| # | Cause | Fix |
+|---|-------|-----|
+| 1 | Repo not pushed yet | The URL cannot exist before the first `git push` |
+| 2 | Pages source still *"Deploy from a branch"* | Settings → Pages → Source: **GitHub Actions** |
+| 3 | First run still queued/failed | Actions tab → wait for (or read) the `deploy` job |
+| 4 | Username casing | `github.io` hostnames are lowercase — `smir1998`, not `Smir1998` |
 
-### Pipeline anatomy
+The workflow itself: install with cached deps → build with `--base=./` (relative asset paths,
+Pages-safe) → upload artifact → deploy with zero-downtime replacement. It ships inside the
+downloadable source archive too, so the zip from **Ship It** deploys as-is.
 
 ## Run it locally
 
