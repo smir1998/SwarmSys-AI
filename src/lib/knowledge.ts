@@ -139,6 +139,7 @@ export const TOOL_REGISTRY = [
   { name: "web_search", desc: "live Wikipedia search" },
   { name: "github_repos", desc: "live prior-art repository scan" },
   { name: "hf_registry", desc: "live Hugging Face hub metadata" },
+  { name: "model_guard", desc: "Llama Guard 3 + Prompt-Guard classifiers" },
   { name: "osv_scan", desc: "live OSV.dev CVE advisory feed" },
   { name: "knowledge_base", desc: "curated offline facts" },
   { name: "python_exec", desc: "sandboxed interpreter" },
@@ -150,8 +151,12 @@ export const TOOL_REGISTRY = [
 ];
 
 /* ————— Hugging Face model registry —————
-   quality/speed factors shape the simulated run; metadata is verified
-   against the live hub API (GET /api/models/:id) when the web is on. */
+   Models are role-tagged: the planner allocates a specialist to every
+   agent instead of running one LLM everywhere. quality/speed factors
+   shape the simulated run; metadata is verified against the live hub
+   API (GET /api/models/:id) when the web is on. */
+
+export type ModelRole = "general" | "code" | "reasoning" | "edge";
 
 export interface ModelDef {
   id: string;
@@ -160,16 +165,66 @@ export interface ModelDef {
   ctx: string;
   quality: number;
   speed: number;
+  role: ModelRole;
   tag: string;
 }
 
 export const HF_MODELS: ModelDef[] = [
-  { id: "meta-llama/Llama-3.1-8B-Instruct", label: "Llama 3.1 8B", params: "8B", ctx: "128k", quality: 1.0, speed: 1.0, tag: "general" },
-  { id: "Qwen/Qwen2.5-Coder-7B-Instruct", label: "Qwen2.5 Coder 7B", params: "7B", ctx: "128k", quality: 1.06, speed: 1.05, tag: "code" },
-  { id: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B", label: "DeepSeek R1 7B", params: "7B", ctx: "128k", quality: 1.08, speed: 0.82, tag: "reasoning" },
-  { id: "mistralai/Mistral-7B-Instruct-v0.3", label: "Mistral 7B v0.3", params: "7B", ctx: "32k", quality: 0.97, speed: 1.12, tag: "general" },
-  { id: "microsoft/Phi-3.5-mini-instruct", label: "Phi-3.5 mini", params: "3.8B", ctx: "128k", quality: 0.92, speed: 1.3, tag: "edge" },
+  { id: "meta-llama/Llama-3.3-70B-Instruct", label: "Llama 3.3 70B", params: "70B", ctx: "128k", quality: 1.12, speed: 0.62, role: "general", tag: "flagship" },
+  { id: "deepseek-ai/DeepSeek-R1-Distill-Llama-70B", label: "DeepSeek R1 70B", params: "70B", ctx: "128k", quality: 1.16, speed: 0.55, role: "reasoning", tag: "flagship" },
+  { id: "Qwen/Qwen2.5-Coder-32B-Instruct", label: "Qwen2.5 Coder 32B", params: "32B", ctx: "128k", quality: 1.14, speed: 0.72, role: "code", tag: "flagship" },
+  { id: "meta-llama/Llama-3.1-8B-Instruct", label: "Llama 3.1 8B", params: "8B", ctx: "128k", quality: 1.0, speed: 1.0, role: "general", tag: "baseline" },
+  { id: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B", label: "DeepSeek R1 7B", params: "7B", ctx: "128k", quality: 1.08, speed: 0.82, role: "reasoning", tag: "reasoning" },
+  { id: "Qwen/Qwen2.5-Coder-7B-Instruct", label: "Qwen2.5 Coder 7B", params: "7B", ctx: "128k", quality: 1.06, speed: 1.05, role: "code", tag: "code" },
+  { id: "mistralai/Mistral-7B-Instruct-v0.3", label: "Mistral 7B v0.3", params: "7B", ctx: "32k", quality: 0.97, speed: 1.12, role: "general", tag: "balanced" },
+  { id: "microsoft/Phi-3.5-mini-instruct", label: "Phi-3.5 mini", params: "3.8B", ctx: "128k", quality: 0.92, speed: 1.3, role: "edge", tag: "edge" },
 ];
+
+/* per-agent role preference — the planner allocates accordingly */
+export const AGENT_MODEL_PREFS: Record<AgentId, ModelRole> = {
+  planner: "reasoning",
+  research: "general",
+  coder: "code",
+  qa: "code",
+  reviewer: "reasoning",
+  security: "code",
+  devops: "general",
+  reporter: "general",
+};
+
+/* task-specialized non-LLM models — fixed assignments, always on.
+   every id verified against the live hub (huggingface.co/api/models/:id) */
+export const SPECIALIST_MODELS: { id: string; label: string; role: string; usedBy: AgentId[] }[] = [
+  { id: "BAAI/bge-m3", label: "BGE-M3", role: "multilingual embeddings", usedBy: ["research"] },
+  { id: "BAAI/bge-reranker-v2-m3", label: "BGE Reranker v2", role: "cross-encoder rerank", usedBy: ["research"] },
+  { id: "facebook/bart-large-cnn", label: "BART-Large-CNN", role: "extractive summarization", usedBy: ["reporter"] },
+  { id: "distilbert/distilbert-base-uncased-finetuned-sst-2-english", label: "DistilBERT-SST2", role: "sentiment classification", usedBy: ["qa"] },
+  { id: "meta-llama/Llama-Guard-3-1B", label: "Llama Guard 3", role: "content safety classifier", usedBy: ["security"] },
+  { id: "protectai/deberta-v3-base-prompt-injection-v2", label: "Prompt-Guard DeBERTa", role: "injection detector", usedBy: ["security", "qa"] },
+];
+
+export interface ModelAssignment {
+  agent: AgentId;
+  model: ModelDef;
+}
+
+/* flagship primary → flagship specialists; baseline primary → mid-tier */
+export function modelStackFor(primary: ModelDef): ModelAssignment[] {
+  return AGENT_ORDER.map((agent) => {
+    const want = AGENT_MODEL_PREFS[agent];
+    const candidates = HF_MODELS.filter((m) => m.role === want);
+    if (!candidates.length) return { agent, model: primary };
+    const pick =
+      primary.quality >= 1.1
+        ? candidates.reduce((a, b) => (b.quality > a.quality ? b : a))
+        : candidates.reduce((a, b) => (Math.abs(b.quality - 1.05) < Math.abs(a.quality - 1.05) ? b : a));
+    return { agent, model: pick };
+  });
+}
+
+export function specialistsFor(agent: AgentId): string[] {
+  return SPECIALIST_MODELS.filter((s) => s.usedBy.includes(agent)).map((s) => s.label);
+}
 
 /* ————— predefined preset cases —————
    One click bundles the task, the inference model and the swarm policy
@@ -207,18 +262,18 @@ export const PRESETS: Preset[] = [
   {
     id: "preset-rag",
     label: "RAG audit",
-    note: "reasoning model · full review",
+    note: "70B reasoning · flagship stack",
     task: "Create a RAG document assistant",
-    modelId: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+    modelId: "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
     autoApprove: false,
     liveWeb: true,
   },
   {
     id: "preset-sentiment",
     label: "Sentiment board",
-    note: "balanced · auto-approved",
+    note: "70B flagship · auto-approved",
     task: "Analyze sentiment in product reviews",
-    modelId: "meta-llama/Llama-3.1-8B-Instruct",
+    modelId: "meta-llama/Llama-3.3-70B-Instruct",
     autoApprove: true,
     liveWeb: true,
   },

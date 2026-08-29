@@ -45,6 +45,17 @@ export default function AgentRoster({ agents }: { agents: Record<AgentId, AgentR
                 style={{ background: rt.status === "idle" ? "var(--line2)" : def.color }}
               />
             </div>
+            {rt.model && (
+              <p className="mt-1.5 flex items-center gap-1.5">
+                <span
+                  className="inline-block max-w-full truncate border px-1.5 py-0.5 font-mono text-[8.5px] uppercase tracking-[0.08em]"
+                  style={{ borderColor: `color-mix(in srgb, ${def.color} 45%, transparent)`, color: def.color }}
+                  title={`allocated by the planner for this run`}
+                >
+                  ⚡ {rt.model}
+                </span>
+              </p>
+            )}
             <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-mut">{def.role}</p>
             <div className="mt-2.5 flex items-center justify-between gap-2">
               <div className="flex flex-wrap gap-1">

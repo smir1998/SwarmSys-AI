@@ -216,7 +216,7 @@ export default function App() {
         operator: opName,
         origin,
         onPhase: setPhase,
-        onAgent: (a, status, meta) =>
+        onAgent: (a, status, meta, model) =>
           setAgents((prev) => ({
             ...prev,
             [a]: {
@@ -226,6 +226,7 @@ export default function App() {
                   ? Date.now()
                   : prev[a].startedAt,
               meta: meta !== undefined ? meta : prev[a].meta,
+              model: model ?? prev[a].model,
             },
           })),
         onLine: (a, line) => setStages((prev) => ({ ...prev, [a]: [...prev[a], line] })),

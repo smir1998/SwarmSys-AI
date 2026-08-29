@@ -62,6 +62,7 @@ export interface AgentRuntime {
   status: AgentStatus;
   startedAt: number;
   meta: string;
+  model?: string;
 }
 
 export interface RunRecord {

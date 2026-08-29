@@ -28,19 +28,22 @@ User request
      │                                     └────┘
      │                                       │ matrix green
      │                                       ▼
-     │   patch round ↺  ┌──────────┐   score < 85
-     └───────────────── │ Reviewer │ ◄────────┘
-                        └──────────┘   score ≥ 85
-                             │  fan-out ∥  ┌──────────┐
-                             ├───────────► │ Security │ ──┐
-                             │             └──────────┘   │ fan-in
-                             │             ┌──────────┐   ▼
-                             └───────────► │  DevOps  │ ┌──────────┐
-                                           └──────────┘ │ Reporter │──► report.md + PDF
-                                                        └──────────┘
+     │                                 ┌──────────┐   score < 85 → coder ↺
+     │                                 │ Reviewer │ ◄────────────────────
+     │                                 └──────────┘
+     │                                       │ cleared
+     │                  harden ∥       ┌─────┴─────┐
+     │                                 ▼           ▼
+     │                            ┌──────────┐ ┌────────┐
+     └─────────────────────────── │ Security │ │ DevOps │
+                                  └──────────┘ └────────┘
+                                       │           │
+                                       └─────┬─────┘
+                                             ▼
+                                       ┌──────────┐
+                                       │ Reporter │ → report.md + PDF
+                                       └──────────┘
 ```
-
-Phases: `plan → approve → exec ∥ → qa → review ↺ → harden ∥ → report`
 
 ## The eight agents
 
@@ -57,23 +60,28 @@ Phases: `plan → approve → exec ∥ → qa → review ↺ → harden ∥ → 
 
 ## Features
 
-**Core orchestration**
-- Shared short-term memory — every agent reads and writes `key = value` entries, visible live in the memory rail
-- Tool calling — 11 registered tools with args, results and latency logged per invocation
-- Human-approval gate — execution pauses after planning; approve it or send the planner back with a tighter scope
-- Reviewer patch loop — one revision round when quality falls below the gate
-- Streaming stage output — line-by-line agent transcripts, including the code itself
+**Core orchestration** — parallel fan-outs (`research ∥ coder`, then `security ∥ devops`), one shared
+memory store that every agent reads and writes, 11 callable tools, a human-approval gate after planning
+(with *revise scope* that re-plans tighter), a reviewer patch loop, and line-by-line streamed agent output.
 
 **Advanced tier**
-- **Live web research** — real Wikipedia and GitHub REST API calls (no keys, CORS-enabled, graceful offline fallback)
-- **Hugging Face models** — five selectable hub models (Llama 3.1 8B, Qwen2.5 Coder, DeepSeek R1, Mistral 7B, Phi-3.5 mini); the Planner verifies the pick against the live hub API and the Reviewer applies its quality factor to the score
-- **SQL database querying** — an embedded engine answers real `SELECT … WHERE … ORDER BY … LIMIT` against the seeded ledger database mid-run
-- **Security auditing** — live OSV.dev advisory feed for the locked dependencies
-- **PDF generation** — one click typesets the report into a branded A4 document, fully client-side (jsPDF, lazy-loaded)
-- **Notifications** — in-console toast stream plus opt-in browser push for completions
-- **Autonomous scheduling** — recurring tasks trigger full swarm runs on their own cadence (gate bypassed by policy, ledger tagged `· auto`)
-- **Multi-operator workspace** — operator seats in the top bar, each with its own run ledger and long-term memory
-- **Long-term memory** — persisted preferences (stack, domain history) bias the Planner on repeat domains
+
+- **Live API integrations** — Wikipedia, GitHub, the Hugging Face hub and the OSV.dev advisory feed, all
+  CORS-friendly, with graceful offline fallbacks behind the `live web` toggle
+- **Hugging Face model stack** — eight role-tagged hub models (general / code / reasoning / edge, incl.
+  Llama 3.3 70B, DeepSeek R1 70B, Qwen2.5-Coder 32B). The **planner allocates a role-matched specialist
+  to every agent** — reasoning models plan and review, code models build and audit — plus fixed
+  task-specialized models: BGE-M3 embeddings, BGE Reranker v2, BART-Large-CNN summarization,
+  DistilBERT-SST2 classification and the Llama Guard 3 / Prompt-Guard-DeBERTa safety pair that the
+  security agent runs on every audit. The hub verifies **every registered model's** availability and
+  downloads live, quality factors shape review scoring, and speed factors drive code-streaming pace
+- **Embedded SQL engine** — `SELECT … WHERE … ORDER BY … LIMIT` over a seeded ledger DB
+- **Report exports** — PDF typeset client-side (jsPDF, lazy-loaded) and raw markdown, both served through
+  an in-app **Report Viewer** with inline preview, Save file, Copy and a New-tab fallback
+- **Notifications** — in-console toast stream plus opt-in browser push
+- **Autonomous scheduler** — recurring tasks (5–60 min cadence) that auto-execute full runs, gate bypassed
+- **Multi-operator workspace** — operator seats with isolated run ledgers and long-term memory
+- **Long-term memory** — user preferences persist per operator and bias the planner on repeat domains
 
 ## The console
 
@@ -81,30 +89,18 @@ A four-panel interface — toggle horizontally, never scroll past everything:
 
 | Panel | Contents |
 |-------|----------|
-| **01 Console** | Task input, model selector, toggle switches, 8-agent roster, live pipeline, memory/tools/ledger rail, scheduler |
-| **02 Architecture** | The animated 8-node orchestration DAG with both fan-outs and the patch loop |
-| **03 Agents** | Dossiers: system prompt, responsibilities, tool belt and memory contract for each specialist |
-| **04 Ship it** | A working exit ramp: download the complete source `.zip` (30 files, buildable as-is) and the deploy pack (vercel.json, netlify.toml, render.yaml, Dockerfile + nginx, Dockerfile.api + requirements), copy-ready deploy commands for six targets, a persisted ship checklist, plus the LangGraph `graph.py` port |
+| **01 Console** | task input, six preset cases, role-tagged HF model selector, approval gate, live pipeline with per-agent model tags, memory/tools/ledger rails, scheduler |
+| **02 Architecture** | the animated orchestration DAG |
+| **03 Agents** | system prompts, tool belts and memory contracts for all eight specialists |
+| **04 Ship It** | source archive download, deploy pack, per-target commands, ship checklist, LangGraph port |
 
 Keyboard: `1`–`4` switch panels. Toggles: **auto-approve** (skip the gate), **live web** (real API evidence).
 
 **Preset cases** — six predefined configurations bundle the task, the Hugging Face model and the swarm
-policy into one click: *Spam sweep* (Φ-3.5, gate bypassed), *Support bot* (Qwen Coder, human gate),
-*RAG audit* (DeepSeek R1, full review), *Sentiment board* (Llama, auto-approved), *News crawl*
-(Mistral, offline), *Demand forecast* (Llama, offline). Each maps to a curated task domain with real
+policy into one click: *Spam sweep* (Φ-3.5 edge, gate bypassed), *Support bot* (Qwen Coder 7B, human gate),
+*RAG audit* (DeepSeek R1 70B flagship stack, full review), *Sentiment board* (Llama 3.3 70B, auto-approved),
+*News crawl* (Mistral, offline), *Demand forecast* (Llama 3.1 8B, offline). Each maps to a curated task domain with real
 research notes and production-grade Python; anything else routes to a generic fallback domain.
-
-## Run it
-
-```bash
-npm install
-npm run dev       # local console
-npm run build     # static production build in dist/
-```
-
-Stack: **React + TypeScript + Vite + Tailwind v4**, Chakra Petch / IBM Plex type pairing.
-Zero runtime dependencies beyond jsPDF (code-split) — everything else is hand-rolled, including the SQL
-engine, the markdown renderer and the orchestration core.
 
 ## Live deployment
 
@@ -114,7 +110,7 @@ engine, the markdown renderer and the orchestration core.
 | 🤖 **Pipeline** | [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) — builds and publishes on every push |
 | 📦 **Build** | `npm ci && npm run build -- --base=./` → static `dist/` (zero server, zero keys) |
 | ⚡ **Deploy** | `git push origin main` — Actions does the rest |
-| 🗂 **Manifests** | `vercel.json` · `netlify.toml` · `render.yaml` · `Dockerfile` + `nginx.conf` — all downloadable from the in-app **Ship It** panel |
+| 🗂 **Manifests** | `vercel.json` · `netlify.toml` · `render.yaml` · `Dockerfile` + `nginx.conf` — downloadable from the in-app **Ship It** panel |
 
 ```bash
 # GitHub Actions is the primary pipeline — zero commands after the first push
@@ -132,13 +128,11 @@ docker build -t swarmsys-ai . && docker run -d -p 8080:80 swarmsys-ai  # → htt
 
 ## Deploy via GitHub Actions
 
-The repo ships a zero-config pipeline — [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) —
-that builds the bundle and publishes it to GitHub Pages on every push to `main`.
+The repository ships a zero-config Pages pipeline: [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
 
-### Setup (once, ~3 minutes)
-
-1. **Create the repo and push**
-
+1. Create a GitHub repository and push this project (`git add -A && git commit && git push origin main`).
+2. In the repo: **Settings → Pages → Source: GitHub Actions**.
+3. Done — every push builds and publishes to `https://<your-username>.github.io/swarmsys-ai/`.
    ```bash
    git init && git add -A && git commit -m "swarmsys-ai: multi-agent console"
    git branch -M main
@@ -146,7 +140,9 @@ that builds the bundle and publishes it to GitHub Pages on every push to `main`.
    git push -u origin main
    ```
 
-2. **Enable Pages** — repo → **Settings → Pages → Source: GitHub Actions**
+The workflow runs on pushes to `main` and on manual dispatch: install with cached deps → build with
+`--base=./` (relative asset paths, Pages-safe) → upload artifact → deploy with zero-downtime replacement.
+It ships inside the downloadable source archive too, so the zip from **Ship It** deploys as-is.
 
 3. **Done.** The workflow runs and the console goes live at:
 
@@ -158,57 +154,58 @@ that builds the bundle and publishes it to GitHub Pages on every push to `main`.
 
 ### Pipeline anatomy
 
-| Step | Does what |
-|------|-----------|
-| `actions/checkout@v4` + `setup-node@v4` | Node 20 with the npm cache |
-| `npm ci` | reproducible install from the lockfile |
-| `npm run build -- --base=./` | static build with **relative asset URLs** (required for the `/<repo>/` sub-path) |
-| `actions/upload-pages-artifact@v3` | hands `dist/` to the Pages environment |
-| `actions/deploy-pages@v4` | atomic publish behind a `pages` concurrency group |
+## Run it locally
 
-### Status badge
-
-Drop this under the title once the repo is public:
-
-```markdown
-![deploy](https://github.com/<your-username>/swarmsys-ai/actions/workflows/deploy.yml/badge.svg)
+```bash
+npm install
+npm run dev       # local console
+npm run build     # static production build in dist/
+npm run typecheck # strict TypeScript pass
 ```
+
+**Stack:** React 19 · TypeScript 5.9 (strict) · Vite 6 · Tailwind CSS 4 · jsPDF + jszip (both code-split
+and lazy-loaded). Chakra Petch / IBM Plex type pairing. Everything else is hand-rolled — the orchestration
+engine, the SQL engine, the markdown renderer, the PDF typesetter, the deploy tooling.
+
+`npm audit`: **0 vulnerabilities.** Heavy chunks (PDF writer, source archive) load only on demand.
 
 ## Project structure
 
 ```
 .
 ├── .github/workflows/deploy.yml # CI: build → GitHub Pages on every push to main
+├── index.html                   # shell: fonts, meta, SVG favicon
+├── package.json · tsconfig.json · vite.config.js
 └── src/
-    ├── App.tsx                  # panel switching, run lifecycle, operators, scheduler
+    ├── App.tsx                  # panel switching, run lifecycle, operators, scheduler, exports
     ├── components/
     │   ├── TopBar.tsx           # status, clock, notify, operator seats, panel rail
-    │   ├── TaskConsole.tsx      # input, presets, model selector, toggles
-    │   ├── Pipeline.tsx         # the 8-stage streaming board + approval gate + report
+    │   ├── TaskConsole.tsx      # input, presets, HF model selector, toggles
+    │   ├── Pipeline.tsx         # 8-stage streaming board + approval gate + final response
     │   ├── AgentRoster.tsx      # live per-agent status rail
     │   ├── MemoryPanel.tsx      # shared memory / tool calls / run ledger tabs
     │   ├── SchedulerPanel.tsx   # autonomous recurring runs
-    │   ├── ReportViewer.tsx     # PDF preview / markdown save modal
+    │   ├── ReportViewer.tsx     # PDF/markdown preview modal with save & copy
     │   ├── ArchitectureSection.tsx # animated DAG (panel 02)
     │   ├── DossiersSection.tsx  # agent prompts & contracts (panel 03)
-    │   ├── ShipSection.tsx      # ship actions, deploy targets, checklist (panel 04)
+    │   ├── ShipSection.tsx      # downloads, deploy targets, checklist, LangGraph port (panel 04)
     │   └── NotifyToasts.tsx     # toast stream + browser push
     └── lib/
         ├── engine.ts            # the Orchestrator — gates, fan-outs, patch loop, report
-        ├── knowledge.ts         # agent registry, 7 domains, HF models, presets
+        ├── knowledge.ts         # agent registry, 7 domains, 8 HF models + 6 specialists, 6 presets, 12 tools
         ├── web.ts               # live Wikipedia / GitHub / HF hub / OSV.dev clients
         ├── sqlite.ts            # embedded SQL engine
         ├── pdf.ts               # client-side report typesetting
         ├── shipkit.ts           # deploy manifests, targets, ship checklist
-        ├── archive.ts           # lazy source-archive builder (?raw + jszip)
-        ├── store.ts             # operator-scoped localStorage (ledger, LTM, schedules)
+        ├── archive.ts           # lazy source-archive builder (?raw + jszip, 31 files)
+        ├── store.ts             # operator-scoped guarded storage (ledger, LTM, schedules)
         ├── types.ts             # shared contracts (agents, phases, records, views)
         └── ui.tsx               # Reveal, MarkdownLite, icon set, motion hooks
 ```
 
 ## Port it to production
 
-The console mirrors a LangGraph state graph one-to-one — the `04 Ship it` panel contains the working
+The console mirrors a LangGraph state graph one-to-one — the `04 Ship It` panel contains the working
 skeleton:
 
 ```python
@@ -220,11 +217,17 @@ g.add_conditional_edges("reviewer", reviewer.route,
 g.add_edge("security", "reporter"); g.add_edge("devops", "reporter")
 ```
 
-Swap each deterministic specialist for an LLM node using its dossier's system prompt; the memory contract,
-gates and tools hold.
+Swap the deterministic specialists for LLM nodes; the prompts, memory contracts and gates carry over.
 
----
+## Status & known items
 
-**Design note** — the specialists are deterministic on purpose: the workflow is debuggable without a
-single API key, and every live integration degrades gracefully to its offline twin. Multi-agent is an
-architecture decision, not a vendor decision.
+| | |
+|---|---|
+| ✅ Complete | 8-agent engine · presets · HF models · live web/OSV · SQL · exports · scheduler · operators · LTM · mobile · a11y |
+| ✅ Verified | build green · typecheck clean · 0 audit findings · no debug output · reduced-motion honored |
+| ⚠️ Known | `@types/uuid` is deprecated & unused — `npm uninstall @types/uuid` removes it (requires a direct manifest edit) |
+| ⚠️ Known | Vite held at 6.x by environment policy; Vite 7 needs Node ≥ 20.19 |
+
+## License
+
+MIT © 2026 Syed Mohammad Irtiza Rizvi — see [LICENSE](LICENSE).
