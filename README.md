@@ -47,7 +47,7 @@ User request
                                        └──────────┘
 ```
 
-## The eight agents
+## The nine agents
 
 | # | Agent | Job | Writes to shared memory |
 |---|-------|-----|-------------------------|
@@ -58,25 +58,27 @@ User request
 | A5| **Reviewer** | Lints, tests, scores 0–100. Below 85 it hands the Coder one precise patch list | `review.score`, `review.flags` |
 | A6| **Security** | SAST for secrets/injection + live OSV.dev CVE scan; critical findings block the ship | `security.verdict`, `security.findings` |
 | A7| **DevOps** | Dockerfile, CI workflow, rollback plan — the deployment contract | `deploy.contract` |
-| A8| **Reporter** | Merges every stage into the final report; exports Markdown and a typeset PDF | `report.md` |
+| A8| **Debugger** | Monitors all agents for errors, applies minimal fixes, keeps the swarm running | `debug.fixes`, `debug.retries` |
+| A9| **Reporter** | Merges every stage into the final report; exports Markdown and a typeset PDF | `report.md` |
 
 ## Features
 
 **Core orchestration** — parallel fan-outs (`research ∥ coder`, then `security ∥ devops`), one shared
-memory store that every agent reads and writes, 11 callable tools, a human-approval gate after planning
-(with *revise scope* that re-plans tighter), a reviewer patch loop, and line-by-line streamed agent output.
+memory store that every agent reads and writes, 12 callable tools, a human-approval gate after planning
+(with *revise scope* that re-plans tighter), a reviewer patch loop, a debugger that monitors and fixes errors, and line-by-line streamed agent output.
 
 **Advanced tier**
 
 - **Live API integrations** — Wikipedia, GitHub, the Hugging Face hub and the OSV.dev advisory feed, all
   CORS-friendly, with graceful offline fallbacks behind the `live web` toggle
-- **Hugging Face model stack** — eight role-tagged hub models (general / code / reasoning / edge, incl.
-  Llama 3.3 70B, DeepSeek R1 70B, Qwen2.5-Coder 32B). The **planner allocates a role-matched specialist
+- **Hugging Face model stack (2026)** — ten role-tagged hub models including the latest flagships: Qwen3.5 27B, DeepSeek V3.2 671B, Llama 4 Scout 17B, Qwen3.8 27B, Gemma 4 27B. The **planner allocates a role-matched specialist
   to every agent** — reasoning models plan and review, code models build and audit — plus fixed
   task-specialized models: BGE-M3 embeddings, BGE Reranker v2, BART-Large-CNN summarization,
   DistilBERT-SST2 classification and the Llama Guard 3 / Prompt-Guard-DeBERTa safety pair that the
   security agent runs on every audit. The hub verifies **every registered model's** availability and
   downloads live, quality factors shape review scoring, and speed factors drive code-streaming pace
+- **Loop engineering** — iterative prompt refinement where prompts are tested, evaluated, and automatically improved based on output quality metrics. The Debugger agent monitors execution and applies minimal fixes to keep the swarm running
+- **Prompt execution trace** — real-time visualization of prompt construction, memory injection, tool calls, and agent outputs in the Prompts view
 - **Embedded SQL engine** — `SELECT … WHERE … ORDER BY … LIMIT` over a seeded ledger DB
 - **Report exports** — PDF typeset client-side (jsPDF, lazy-loaded) and raw markdown, both served through
   an in-app **Report Viewer** with inline preview, Save file, Copy and a New-tab fallback
@@ -87,16 +89,17 @@ memory store that every agent reads and writes, 11 callable tools, a human-appro
 
 ## The console
 
-A four-panel interface — toggle horizontally, never scroll past everything:
+A five-panel interface — toggle horizontally, never scroll past everything:
 
 | Panel | Contents |
 |-------|----------|
 | **01 Console** | task input, six preset cases, role-tagged HF model selector, approval gate, live pipeline with per-agent model tags, memory/tools/ledger rails, scheduler |
 | **02 Architecture** | the animated orchestration DAG |
-| **03 Agents** | system prompts, tool belts and memory contracts for all eight specialists |
-| **04 Ship It** | source archive download, deploy pack, per-target commands, ship checklist, LangGraph port |
+| **03 Agents** | system prompts, tool belts and memory contracts for all nine specialists |
+| **04 Prompts** | real-time prompt execution trace: system prompts, memory context, tool calls, execution traces for each active agent |
+| **05 Ship It** | source archive download, deploy pack, per-target commands, ship checklist, LangGraph port |
 
-Keyboard: `1`–`4` switch panels. Toggles: **auto-approve** (skip the gate), **live web** (real API evidence).
+Keyboard: `1`–`5` switch panels. Toggles: **auto-approve** (skip the gate), **live web** (real API evidence).
 
 **Preset cases** — six predefined configurations bundle the task, the Hugging Face model and the swarm
 policy into one click: *Spam sweep* (Φ-3.5 edge, gate bypassed), *Support bot* (Qwen Coder 7B, human gate),
@@ -182,18 +185,19 @@ engine, the SQL engine, the markdown renderer, the PDF typesetter, the deploy to
     ├── components/
     │   ├── TopBar.tsx           # status, clock, notify, operator seats, panel rail
     │   ├── TaskConsole.tsx      # input, presets, HF model selector, toggles
-    │   ├── Pipeline.tsx         # 8-stage streaming board + approval gate + final response
+    │   ├── Pipeline.tsx         # 9-stage streaming board + approval gate + final response
     │   ├── AgentRoster.tsx      # live per-agent status rail
     │   ├── MemoryPanel.tsx      # shared memory / tool calls / run ledger tabs
     │   ├── SchedulerPanel.tsx   # autonomous recurring runs
     │   ├── ReportViewer.tsx     # PDF/markdown preview modal with save & copy
+    │   ├── PromptExecutionView.tsx # real-time prompt trace (panel 04)
     │   ├── ArchitectureSection.tsx # animated DAG (panel 02)
     │   ├── DossiersSection.tsx  # agent prompts & contracts (panel 03)
-    │   ├── ShipSection.tsx      # downloads, deploy targets, checklist, LangGraph port (panel 04)
+    │   ├── ShipSection.tsx      # downloads, deploy targets, checklist, LangGraph port (panel 05)
     │   └── NotifyToasts.tsx     # toast stream + browser push
     └── lib/
-        ├── engine.ts            # the Orchestrator — gates, fan-outs, patch loop, report
-        ├── knowledge.ts         # agent registry, 7 domains, 8 HF models + 6 specialists, 6 presets, 12 tools
+        ├── engine.ts            # the Orchestrator — gates, fan-outs, patch loop, debugger, report
+        ├── knowledge.ts         # agent registry, 7 domains, 10 HF models + 6 specialists, 6 presets, 12 tools
         ├── web.ts               # live Wikipedia / GitHub / HF hub / OSV.dev clients
         ├── sqlite.ts            # embedded SQL engine
         ├── pdf.ts               # client-side report typesetting
@@ -215,7 +219,9 @@ g.add_edge("planner", "coder")          # fan-out ∥
 g.add_edge("research", "qa"); g.add_edge("coder", "qa")
 g.add_conditional_edges("reviewer", reviewer.route,
                         {"patch": "coder", "ship": "security"})
-g.add_edge("security", "reporter"); g.add_edge("devops", "reporter")
+g.add_edge("security", "devops")        # fan-out ∥
+g.add_edge("devops", "debugger")        # error monitoring
+g.add_edge("debugger", "reporter")      # final merge
 ```
 
 Swap the deterministic specialists for LLM nodes; the prompts, memory contracts and gates carry over.
