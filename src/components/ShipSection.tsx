@@ -145,13 +145,13 @@ function DeployStatus() {
                   ✗ running locally / in preview — the Pages URL activates after the first green Actions run
                 </p>
                 <p className="mt-2 font-body text-[13px] leading-relaxed text-mut">
-                  Seeing GitHub's <em className="text-ink/80 not-italic">"There isn't a GitHub Pages site here"</em>{" "}
-                  page? That means the URL is correct but the site isn't published yet — one of these four:
+                  Seeing GitHub&apos;s <em className="text-ink/80 not-italic">&quot;There isn&apos;t a GitHub Pages site here&quot;</em>{" "}
+                  page? That means the URL is correct but the site isn&apos;t published yet — one of these four:
                 </p>
                 <ul className="mt-3 space-y-2">
                   {[
                     ["repo not pushed yet", "the URL cannot exist before the first push to main"],
-                    ["Pages source is wrong", "Settings → Pages → Source must read “GitHub Actions”, not “Deploy from a branch”"],
+                    ["Pages source is wrong", "Settings → Pages → Source must read "GitHub Actions", not "Deploy from a branch""],
                     ["username casing", "github.io hostnames are lowercase — check every letter"],
                     ["first run still queued", "Actions tab → wait for the deploy job's green check (~1–2 min)"],
                   ].map(([t, d], i) => (
@@ -281,7 +281,7 @@ export default function ShipSection() {
             <button
               onClick={() => grab("source")}
               disabled={!!zipping}
-              className="flex h-12 items-center justify-center gap-2.5 bg-amber font-display text-sm font-bold uppercase tracking-[0.1em] text-[#0a0f12] transition-all duration-200 hover:bg-ink disabled:opacity-40"
+              className="flex h-12 items-center justify-center gap-2.5 bg-amber font-display text-sm font-bold uppercase tracking-[0.1em] text-[#0a0f12] transition-all duration-200 hover:bg-ink d[...]"
             >
               <Icon name="download" className="h-4 w-4" />
               {zipping === "source" ? "Zipping…" : "Download source .zip"}
@@ -300,7 +300,7 @@ export default function ShipSection() {
             <button
               onClick={() => grab("pack")}
               disabled={!!zipping}
-              className="flex h-12 items-center justify-center gap-2.5 border-2 border-amber font-display text-sm font-bold uppercase tracking-[0.1em] text-amber transition-all duration-200 hover:bg-amber hover:text-[#0a0f12] disabled:opacity-40"
+              className="flex h-12 items-center justify-center gap-2.5 border-2 border-amber font-display text-sm font-bold uppercase tracking-[0.1em] text-amber transition-all duration-200 hover[...]"
             >
               <Icon name="download" className="h-4 w-4" />
               {zipping === "pack" ? "Zipping…" : "Download deploy pack"}
@@ -485,7 +485,7 @@ export default function ShipSection() {
                 {FRAMEWORKS.map((f) => (
                   <span
                     key={f}
-                    className="border border-line px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-[0.08em] text-ink/80 transition-all duration-200 hover:border-amber hover:text-amber"
+                    className="border border-line px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-[0.08em] text-ink/80 transition-all duration-200 hover:border-amber hover:text-[...]"
                   >
                     {f}
                   </span>
@@ -493,8 +493,8 @@ export default function ShipSection() {
               </div>
             </div>
             <p className="border-t border-line pt-4 font-body text-[13px] leading-relaxed text-mut">
-              The console you're using is the shipped artifact: a static build with no backend. The day
-              you wire in real models, each agent's <span className="font-mono text-[12px] text-research">system prompt</span>{" "}
+              The console you&apos;re using is the shipped artifact: a static build with no backend. The day
+              you wire in real models, each agent&apos;s <span className="font-mono text-[12px] text-research">system prompt</span>{" "}
               and its <span className="font-mono text-[12px] text-coder">memory contract</span> carry over unchanged —
               only the eight node functions gain an LLM call.
             </p>

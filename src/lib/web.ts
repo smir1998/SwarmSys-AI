@@ -29,7 +29,7 @@ export async function searchWikipedia(query: string): Promise<WebSource[]> {
   return hits.map((h) => ({
     title: h.title,
     url: `https://en.wikipedia.org/?curid=${h.pageid}`,
-    snippet: h.snippet.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim().slice(0, 180),
+    snippet: h.snippet.replace(/[<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 180),
     kind: "wiki" as const,
   }));
 }
