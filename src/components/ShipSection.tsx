@@ -70,6 +70,165 @@ function useCopy() {
   return { copied, copy };
 }
 
+function DeployStatus() {
+  const host = window.location.hostname;
+  const probe = host.endsWith(".github.io")
+    ? { kind: "github" as const, url: window.location.origin + window.location.pathname }
+    : host.endsWith(".vercel.app") || host.endsWith(".netlify.app")
+      ? { kind: "alt" as const, url: window.location.origin }
+      : { kind: "local" as const, url: window.location.origin };
+  const live = probe.kind !== "local";
+
+  const [user, setUser] = useState(() => {
+    try {
+      return localStorage.getItem("swarmsys.ghuser") ?? "smir1998";
+    } catch {
+      return "smir1998";
+    }
+  });
+  const [copied, setCopied] = useState(false);
+  const pagesUrl = `https://${user.trim().toLowerCase() || "your-username"}.github.io/swarmsys-ai/`;
+  const saveUser = (v: string) => {
+    setUser(v);
+    try {
+      localStorage.setItem("swarmsys.ghuser", v);
+    } catch {
+      /* private mode */
+    }
+  };
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(pagesUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+    }
+  };
+  const gh = user.trim().toLowerCase();
+
+  return (
+    <Reveal delay={80}>
+      <div
+        className={`mt-8 border-2 transition-colors duration-300 ${
+          live ? "border-coder/60 shadow-[inset_0_0_70px_-40px_var(--c-coder)]" : "border-line2"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-4 border-b border-line px-5 py-3">
+          <p className="flex items-center gap-3">
+            <span className={`h-2.5 w-2.5 rounded-full ${live ? "bg-coder" : "gate-pulse bg-coral"}`} />
+            <span className="font-display text-sm font-bold uppercase tracking-[0.12em]">
+              {live ? "Deployment live" : "Not deployed yet"}
+            </span>
+          </p>
+          <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-mut sm:inline">
+            origin probe · {host}
+          </span>
+        </div>
+
+        <div className="grid gap-8 p-5 md:grid-cols-[1fr_1.15fr] md:p-7">
+          {/* left: verdict */}
+          <div>
+            {live ? (
+              <>
+                <p className="font-mono text-[12px] leading-relaxed text-coder">
+                  ✓ serving from {probe.url}
+                </p>
+                <p className="mt-2 font-body text-[13px] leading-relaxed text-mut">
+                  This build is already on a live host. Every future push to <span className="text-ink/80">main</span>{" "}
+                  redeploys it automatically via the Actions workflow.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-mono text-[12px] leading-relaxed text-coral">
+                  ✗ running locally / in preview — the Pages URL activates after the first green Actions run
+                </p>
+                <p className="mt-2 font-body text-[13px] leading-relaxed text-mut">
+                  Seeing GitHub&apos;s <em className="text-ink/80 not-italic">&quot;There isn&apos;t a GitHub Pages site here&quot;</em>{" "}
+                  page? That means the URL is correct but the site isn&apos;t published yet — one of these four:
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {[
+                    ["repo not pushed yet", "the URL cannot exist before the first push to main"],
+                    ["Pages source is wrong", "Settings → Pages → Source must read "GitHub Actions", not "Deploy from a branch""],
+                    ["username casing", "github.io hostnames are lowercase — check every letter"],
+                    ["first run still queued", "Actions tab → wait for the deploy job's green check (~1–2 min)"],
+                  ].map(([t, d], i) => (
+                    <li key={t} className="flex gap-3 font-mono text-[11px] leading-relaxed">
+                      <span className="shrink-0 text-amber">0{i + 1}</span>
+                      <span>
+                        <span className="text-ink/85">{t}</span>
+                        <span className="text-mut"> — {d}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+
+          {/* right: compute your real URL */}
+          <div className="border border-line bg-panel p-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-mut">your Pages URL · computed live</p>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="font-mono text-[12px] text-mut">github.com/</span>
+              <input
+                value={user}
+                onChange={(e) => saveUser(e.target.value)}
+                placeholder="your-username"
+                aria-label="Your GitHub username"
+                className="w-full max-w-[220px] border border-line bg-bg px-3 py-2 font-mono text-base text-amber outline-none transition-colors focus:border-amber md:text-[13px]"
+                spellCheck={false}
+              />
+              <span className="font-mono text-[12px] text-mut">/swarmsys-ai</span>
+            </div>
+            <button
+              onClick={copy}
+              className={`mt-3 flex w-full items-center justify-between gap-3 border px-3.5 py-2.5 text-left font-mono text-[11.5px] transition-all ${
+                copied ? "border-coder text-coder" : "border-line bg-bg text-research hover:border-research/60"
+              }`}
+            >
+              <span className="truncate">{pagesUrl}</span>
+              <Icon name={copied ? "check" : "copy"} className="h-3.5 w-3.5 shrink-0" />
+            </button>
+            <div className="mt-4 space-y-2">
+              {[
+                gh
+                  ? { label: "1 · push the repo", href: `https://github.com/${gh}?tab=repositories`, ext: true }
+                  : null,
+                gh
+                  ? { label: "2 · enable Pages → Source: GitHub Actions", href: `https://github.com/${gh}/swarmsys-ai/settings/pages`, ext: true }
+                  : null,
+                gh
+                  ? { label: "3 · watch the first run go green", href: `https://github.com/${gh}/swarmsys-ai/actions`, ext: true }
+                  : null,
+                { label: "no repo yet? create github.com/swarmsys-ai first", href: "https://github.com/new", ext: true },
+              ]
+                .filter(Boolean)
+                .map((s) => (
+                  <a
+                    key={s!.label}
+                    href={s!.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group flex items-center justify-between border border-line px-3.5 py-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-mut transition-all hover:border-amber hover:text-amber"
+                  >
+                    {s!.label}
+                    <Icon name="arrow" className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                  </a>
+                ))}
+            </div>
+            <p className="mt-3 border-t border-line pt-2.5 font-mono text-[9px] uppercase leading-relaxed tracking-[0.14em] text-mut/70">
+              username persists to this browser · the site appears 1–2 min after the green check
+            </p>
+          </div>
+        </div>
+      </div>
+    </Reveal>
+  );
+}
+
 export default function ShipSection() {
   const { copied, copy } = useCopy();
   const [done, setDone] = useState<string[]>(() => loadShipCheck());
@@ -122,7 +281,7 @@ export default function ShipSection() {
             <button
               onClick={() => grab("source")}
               disabled={!!zipping}
-              className="flex h-12 items-center justify-center gap-2.5 bg-amber font-display text-sm font-bold uppercase tracking-[0.1em] text-[#0a0f12] transition-all duration-200 hover:bg-ink disabled:opacity-40"
+              className="flex h-12 items-center justify-center gap-2.5 bg-amber font-display text-sm font-bold uppercase tracking-[0.1em] text-[#0a0f12] transition-all duration-200 hover:bg-ink d[...]"
             >
               <Icon name="download" className="h-4 w-4" />
               {zipping === "source" ? "Zipping…" : "Download source .zip"}
@@ -141,7 +300,7 @@ export default function ShipSection() {
             <button
               onClick={() => grab("pack")}
               disabled={!!zipping}
-              className="flex h-12 items-center justify-center gap-2.5 border-2 border-amber font-display text-sm font-bold uppercase tracking-[0.1em] text-amber transition-all duration-200 hover:bg-amber hover:text-[#0a0f12] disabled:opacity-40"
+              className="flex h-12 items-center justify-center gap-2.5 border-2 border-amber font-display text-sm font-bold uppercase tracking-[0.1em] text-amber transition-all duration-200 hover[...]"
             >
               <Icon name="download" className="h-4 w-4" />
               {zipping === "pack" ? "Zipping…" : "Download deploy pack"}
@@ -200,6 +359,9 @@ export default function ShipSection() {
           </div>
         </div>
       </Reveal>
+
+      {/* ————— deployment status probe ————— */}
+      <DeployStatus />
 
       {/* ————— deploy targets ————— */}
       <Reveal delay={100}>
@@ -323,7 +485,7 @@ export default function ShipSection() {
                 {FRAMEWORKS.map((f) => (
                   <span
                     key={f}
-                    className="border border-line px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-[0.08em] text-ink/80 transition-all duration-200 hover:border-amber hover:text-amber"
+                    className="border border-line px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-[0.08em] text-ink/80 transition-all duration-200 hover:border-amber hover:text-[...]"
                   >
                     {f}
                   </span>
@@ -331,8 +493,8 @@ export default function ShipSection() {
               </div>
             </div>
             <p className="border-t border-line pt-4 font-body text-[13px] leading-relaxed text-mut">
-              The console you're using is the shipped artifact: a static build with no backend. The day
-              you wire in real models, each agent's <span className="font-mono text-[12px] text-research">system prompt</span>{" "}
+              The console you&apos;re using is the shipped artifact: a static build with no backend. The day
+              you wire in real models, each agent&apos;s <span className="font-mono text-[12px] text-research">system prompt</span>{" "}
               and its <span className="font-mono text-[12px] text-coder">memory contract</span> carry over unchanged —
               only the eight node functions gain an LLM call.
             </p>
