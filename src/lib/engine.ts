@@ -354,10 +354,15 @@ export class Orchestrator {
       this.h.onPhase("hardening");
       this.line("planner", "sys", "fan-out → security ∥ devops");
       await Promise.all([this.runSecurity(d), this.runDevOps(d)]);
+      this.line("planner", "sys", "fan-in → debugger");
+      if (this.dead) return;
+
+      /* ————— A8 · DEBUGGER ————— */
+      await this.runDebugger(d);
       this.line("planner", "sys", "fan-in → reporter");
       if (this.dead) return;
 
-      /* ————— A8 · REPORTER ————— */
+      /* ————— A9 · REPORTER ————— */
       this.h.onPhase("report");
       const wallMs = Math.round(performance.now() - t0);
       const md = await this.runReporter(task, d, score, wallMs);
@@ -643,7 +648,39 @@ export class Orchestrator {
     this.done("devops", "contract sealed");
   }
 
-  /* ————— A5 · reporter agent ————— */
+  /* ————— A8 · debugger agent ————— */
+  private async runDebugger(d: Domain): Promise<void> {
+    await this.think("debugger", 500, "monitoring for errors");
+    this.readMem("debugger", "review.score");
+    this.readMem("debugger", "qa.coverage");
+    
+    // Simulate error monitoring and fixes
+    const fixes = Math.floor(Math.random() * 3); // 0-2 fixes
+    const retries = Math.floor(Math.random() * 2); // 0-1 retries
+    
+    if (fixes > 0) {
+      this.line("debugger", "info", `detected ${fixes} minor issues during execution`);
+      for (let i = 0; i < fixes; i++) {
+        await this.stream("debugger", "warn", `fix ${i + 1}: applied minimal patch to preserve contract`, 60, 5);
+        await this.delay(100);
+      }
+    } else {
+      this.line("debugger", "good", "no errors detected — swarm execution clean");
+    }
+    
+    if (retries > 0) {
+      this.line("debugger", "info", `retried ${retries} transient failure(s)`);
+      await this.stream("debugger", "data", "retry → success on second attempt", 60, 5);
+    }
+    
+    await this.writeMem("debugger", "debug.fixes", `${fixes} patches applied`);
+    await this.writeMem("debugger", "debug.retries", `${retries} retries · 0 escalations`);
+    
+    this.line("debugger", "good", `error monitoring complete · ${fixes} fixes · ${retries} retries`);
+    this.done("debugger", `${fixes} fixes · ${retries} retries`);
+  }
+
+  /* ————— A9 · reporter agent ————— */
   private async runReporter(task: string, d: Domain, score: number, wallMs: number): Promise<string> {
     await this.think("reporter", 600, "compiling report");
     this.line(
@@ -663,7 +700,7 @@ export class Orchestrator {
     lines.push(`# ${d.label} — ${task}`);
     lines.push("");
     lines.push(
-      `**Executive summary.** Eight agents decomposed this into ${d.subtasks.length + EXTRA_ROWS.length} subtasks and shipped a reviewed, tested, security-audited implementation in ${(wallMs / 1000).toFixed(1)}s wall time. Quality gate: **${score}/100**. Coverage: **${d.qa.coverage}%**. Locked stack: ${d.stack.join(", ")}.`,
+      `**Executive summary.** Nine agents decomposed this into ${d.subtasks.length + EXTRA_ROWS.length} subtasks and shipped a reviewed, tested, security-audited implementation in ${(wallMs / 1000).toFixed(1)}s wall time. Quality gate: **${score}/100**. Coverage: **${d.qa.coverage}%**. Locked stack: ${d.stack.join(", ")}.`,
     );
     lines.push("");
     lines.push("## 01 · Inference Model & Stack");
