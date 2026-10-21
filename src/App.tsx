@@ -6,6 +6,7 @@ import Footer from "./components/Footer";
 import MemoryPanel from "./components/MemoryPanel";
 import NotifyToasts, { askNotifyPermission, browserNotify } from "./components/NotifyToasts";
 import Pipeline from "./components/Pipeline";
+import PromptExecutionView from "./components/PromptExecutionView";
 import ReportViewer, { type ViewerState } from "./components/ReportViewer";
 import SchedulerPanel from "./components/SchedulerPanel";
 import ShipSection from "./components/ShipSection";
@@ -52,6 +53,7 @@ const IDLE_AGENTS: Record<AgentId, AgentRuntime> = {
   reviewer: { status: "idle", startedAt: 0, meta: "" },
   security: { status: "idle", startedAt: 0, meta: "" },
   devops: { status: "idle", startedAt: 0, meta: "" },
+  debugger: { status: "idle", startedAt: 0, meta: "" },
   reporter: { status: "idle", startedAt: 0, meta: "" },
 };
 
@@ -63,6 +65,7 @@ const EMPTY_STAGES: Record<AgentId, StageLine[]> = {
   reviewer: [],
   security: [],
   devops: [],
+  debugger: [],
   reporter: [],
 };
 
@@ -139,7 +142,7 @@ export default function App() {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
-      const map: Record<string, ViewId> = { "1": "console", "2": "architecture", "3": "agents", "4": "ship" };
+      const map: Record<string, ViewId> = { "1": "console", "2": "architecture", "3": "agents", "4": "prompts", "5": "ship" };
       if (map[e.key]) switchView(map[e.key]);
     };
     window.addEventListener("keydown", onKey);
@@ -562,6 +565,7 @@ export default function App() {
         {/* ————— toggled views ————— */}
         {view === "architecture" && <ArchitectureSection />}
         {view === "agents" && <DossiersSection />}
+        {view === "prompts" && <PromptExecutionView agents={agents} stages={stages} memory={memory} tools={tools} />}
         {view === "ship" && <ShipSection />}
         </div>
       </main>

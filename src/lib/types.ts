@@ -6,6 +6,7 @@ export type AgentId =
   | "reviewer"
   | "security"
   | "devops"
+  | "debugger"
   | "reporter";
 
 export type AgentStatus = "idle" | "thinking" | "working" | "done";
@@ -82,7 +83,7 @@ export interface LtmEntry {
   value: string;
 }
 
-export type ViewId = "console" | "architecture" | "agents" | "ship";
+export type ViewId = "console" | "architecture" | "agents" | "prompts" | "ship";
 
 /* ————— advanced tier ————— */
 

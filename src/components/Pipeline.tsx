@@ -242,6 +242,8 @@ export default function Pipeline({
         <StageCard agent="security" lines={stages.security} rt={agents.security} maxH={230} />
         <StageCard agent="devops" lines={stages.devops} rt={agents.devops} maxH={230} />
       </div>
+      <Connector label="error monitoring" />
+      <StageCard agent="debugger" lines={stages.debugger} rt={agents.debugger} maxH={230} />
       <Connector label="contracts sealed" />
       <StageCard agent="reporter" lines={stages.reporter} rt={agents.reporter} maxH={190} />
 

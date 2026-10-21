@@ -18,6 +18,7 @@
   --c-reviewer: #ff7a68;
   --c-security: #d98cf0;
   --c-devops: #5fe0b7;
+  --c-debugger: #ff9f43;
   --c-reporter: #8fb3ff;
 }
 
@@ -38,6 +39,7 @@
   --color-reviewer: var(--c-reviewer);
   --color-security: var(--c-security);
   --color-devops: var(--c-devops);
+  --color-debugger: var(--c-debugger);
   --color-reporter: var(--c-reporter);
   --font-display: "Chakra Petch", "IBM Plex Sans", sans-serif;
   --font-body: "IBM Plex Sans", "Segoe UI", sans-serif;

@@ -22,7 +22,7 @@ export const AGENTS: Record<AgentId, AgentDef> = {
     role: "Understands the operator's goal, decomposes it into subtasks and assigns each to the right specialist.",
     color: "var(--c-planner)",
     tools: ["knowledge_base", "web_search"],
-    prompt: `ROLE — Planner · agent 01/08 · orchestrator. You decompose and assign; you never execute work yourself.
+    prompt: `ROLE — Planner · agent 01/09 · orchestrator. You decompose and assign; you never execute work yourself.
 
 DIRECTIVE — Turn one operator goal into an atomic, verifiable subtask graph, and choose the model stack that runs it.
 
@@ -49,7 +49,7 @@ FAILURE MODE — ambiguous goal → plan the smallest verifiable slice and flag 
     role: "Collects evidence — live web hits, prior-art repos, datasets, metrics — and seals it into shared memory.",
     color: "var(--c-research)",
     tools: ["web_search", "github_repos", "knowledge_base", "vector_db"],
-    prompt: `ROLE — Research · agent 02/08 · evidence officer. You find, rank and seal facts; you never write implementation code.
+    prompt: `ROLE — Research · agent 02/09 · evidence officer. You find, rank and seal facts; you never write implementation code.
 
 DIRECTIVE — Give downstream agents decisions they can trust: stack, datasets, metrics, prior art — each traceable to a source.
 
@@ -76,7 +76,7 @@ FAILURE MODE — web unreachable → the offline knowledge_base holds the line; 
     role: "Generates production-ready code with comments and tests, checks it against the locked research decisions.",
     color: "var(--c-coder)",
     tools: ["python_exec", "sql_query", "code_lint", "file_io"],
-    prompt: `ROLE — Coder · agent 03/08 · builder. Production-grade Python only — prototypes never enter the artifact.
+    prompt: `ROLE — Coder · agent 03/09 · builder. Production-grade Python only — prototypes never enter the artifact.
 
 DIRECTIVE — Ship code that honors the research contract, passes its own tests and survives the reviewer intact.
 
@@ -103,7 +103,7 @@ FAILURE MODE — conflicting memory entries → halt and escalate to the planner
     role: "Runs the full test matrix — unit, edge and property cases — and measures coverage before anything reaches review.",
     color: "var(--c-qa)",
     tools: ["python_exec", "code_lint"],
-    prompt: `ROLE — QA · agent 04/08 · breaker. You find failures in here so users never find them out there.
+    prompt: `ROLE — QA · agent 04/09 · breaker. You find failures in here so users never find them out there.
 
 DIRECTIVE — Exercise the artifact until the matrix is honest: unit, edge and property cases, plus a mutation score.
 
@@ -130,7 +130,7 @@ FAILURE MODE — flaky test → quarantine it, log it, and say so; never delete 
     role: "The quality gate: lints, tests and scores the solution. Below 85 it loops the coder once with a patch list.",
     color: "var(--c-reviewer)",
     tools: ["code_lint", "python_exec", "sql_query"],
-    prompt: `ROLE — Reviewer · agent 05/08 · quality gate. You score; you do not fix. The gate is yours alone to hold.
+    prompt: `ROLE — Reviewer · agent 05/09 · quality gate. You score; you do not fix. The gate is yours alone to hold.
 
 DIRECTIVE — Judge the artifact against the research contract and emit a defensible 0–100 score.
 
@@ -157,7 +157,7 @@ FAILURE MODE — disagreement with QA's matrix → re-run the matrix yourself; n
     role: "Audits the artifact for injection surface, secrets and dependency CVEs via the live OSV.dev feed. Critical findings block the ship.",
     color: "var(--c-security)",
     tools: ["code_lint", "osv_scan", "web_search"],
-    prompt: `ROLE — Security · agent 06/08 · adversary simulator. You assume breach and audit to prevent it.
+    prompt: `ROLE — Security · agent 06/09 · adversary simulator. You assume breach and audit to prevent it.
 
 DIRECTIVE — Clear the artifact for production: injection surface, secrets, dependency CVEs, and prompt safety.
 
@@ -184,7 +184,7 @@ FAILURE MODE — critical finding with no mitigation → verdict BLOCKED; the re
     role: "Packages the solution for production: two-stage Dockerfile, CI workflow, health checks and a rollback plan the reporter can quote.",
     color: "var(--c-devops)",
     tools: ["file_io", "python_exec"],
-    prompt: `ROLE — DevOps · agent 07/08 · shipper. Nothing leaves this swarm without a deployment contract.
+    prompt: `ROLE — DevOps · agent 07/09 · shipper. Nothing leaves this swarm without a deployment contract.
 
 DIRECTIVE — Package the green, reviewed artifact so any operator can run it tomorrow without you.
 
@@ -205,13 +205,40 @@ FAILURE MODE — missing artifact metadata → fail the package loudly; never sh
     writes: ["deploy.dockerfile", "deploy.ci", "deploy.rollback"],
     sample: "deploy.contract = docker + 3-stage CI + sha-pinned rollback",
   },
+  debugger: {
+    id: "debugger",
+    name: "Debugger",
+    role: "Monitors all agents for errors, analyzes failures, and applies targeted fixes to keep the swarm running.",
+    color: "var(--c-debugger)",
+    tools: ["python_exec", "code_lint", "error_analyzer"],
+    prompt: `ROLE — Debugger · agent 08/09 · error surgeon. You fix what breaks; you do not redesign what works.
+
+DIRECTIVE — Keep the swarm running by detecting, diagnosing and resolving errors in real-time.
+
+PROCEDURE
+1. Monitor all agent outputs for exceptions, timeouts, and quality drops below threshold.
+2. On error: read the failing agent's memory context, tool calls, and output to isolate the root cause.
+3. Classify: transient (retry), fixable (patch), or fatal (escalate to planner).
+4. For fixable errors: generate a minimal patch that preserves the agent's contract and memory state.
+5. Apply the patch, re-run the failed step, and log the fix in debug.fixes for the reporter.
+
+TOOL POLICY — python_exec for re-running failed steps, code_lint to validate patches, error_analyzer for stack traces.
+
+OUTPUT CONTRACT — debug.fixes (agent · error · patch · outcome) · debug.retries (count · success rate).
+
+FAILURE MODE — unfixable error → escalate to planner with full context; never silently swallow a fatal failure.`,
+    responsibilities: ["Monitor agent errors", "Diagnose root causes", "Apply minimal fixes"],
+    reads: ["plan.subtasks", "research.stack", "code.artifact", "qa.coverage", "review.score"],
+    writes: ["debug.fixes", "debug.retries"],
+    sample: "debug.fixes = 3 patches · 2 retries · 0 escalations",
+  },
   reporter: {
     id: "reporter",
     name: "Reporter",
     role: "Combines every stage's output into the final report: summary, evidence, code, deployment and risks.",
     color: "var(--c-reporter)",
     tools: ["file_io", "pdf_export"],
-    prompt: `ROLE — Reporter · agent 08/08 · historian. You merge eight agents' work into one document a stranger can act on.
+    prompt: `ROLE — Reporter · agent 09/09 · historian. You merge nine agents' work into one document a stranger can act on.
 
 DIRECTIVE — Final response = executive summary + evidence + code + verdicts + deployment + risks. No section skipped.
 
@@ -242,6 +269,7 @@ export const AGENT_ORDER: AgentId[] = [
   "reviewer",
   "security",
   "devops",
+  "debugger",
   "reporter",
 ];
 
@@ -282,14 +310,19 @@ export interface ModelDef {
 }
 
 export const HF_MODELS: ModelDef[] = [
-  { id: "meta-llama/Llama-3.3-70B-Instruct", label: "Llama 3.3 70B", params: "70B", ctx: "128k", quality: 1.12, speed: 0.62, role: "general", tag: "flagship" },
-  { id: "deepseek-ai/DeepSeek-R1-Distill-Llama-70B", label: "DeepSeek R1 70B", params: "70B", ctx: "128k", quality: 1.16, speed: 0.55, role: "reasoning", tag: "flagship" },
-  { id: "Qwen/Qwen2.5-Coder-32B-Instruct", label: "Qwen2.5 Coder 32B", params: "32B", ctx: "128k", quality: 1.14, speed: 0.72, role: "code", tag: "flagship" },
-  { id: "meta-llama/Llama-3.1-8B-Instruct", label: "Llama 3.1 8B", params: "8B", ctx: "128k", quality: 1.0, speed: 1.0, role: "general", tag: "baseline" },
-  { id: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B", label: "DeepSeek R1 7B", params: "7B", ctx: "128k", quality: 1.08, speed: 0.82, role: "reasoning", tag: "reasoning" },
-  { id: "Qwen/Qwen2.5-Coder-7B-Instruct", label: "Qwen2.5 Coder 7B", params: "7B", ctx: "128k", quality: 1.06, speed: 1.05, role: "code", tag: "code" },
-  { id: "mistralai/Mistral-7B-Instruct-v0.3", label: "Mistral 7B v0.3", params: "7B", ctx: "32k", quality: 0.97, speed: 1.12, role: "general", tag: "balanced" },
-  { id: "microsoft/Phi-3.5-mini-instruct", label: "Phi-3.5 mini", params: "3.8B", ctx: "128k", quality: 0.92, speed: 1.3, role: "edge", tag: "edge" },
+  // 2026 flagships
+  { id: "Qwen/Qwen3.5-27B-Instruct", label: "Qwen3.5 27B", params: "27B", ctx: "128k", quality: 1.18, speed: 0.68, role: "general", tag: "flagship" },
+  { id: "deepseek-ai/DeepSeek-V3.2-671B", label: "DeepSeek V3.2 671B", params: "671B", ctx: "128k", quality: 1.22, speed: 0.45, role: "general", tag: "flagship" },
+  { id: "meta-llama/Llama-4-Scout-17B-16E-Instruct", label: "Llama 4 Scout 17B", params: "17B", ctx: "10M", quality: 1.15, speed: 0.75, role: "general", tag: "flagship" },
+  { id: "Qwen/Qwen3.8-27B-Instruct", label: "Qwen3.8 27B", params: "27B", ctx: "128k", quality: 1.17, speed: 0.70, role: "code", tag: "flagship" },
+  { id: "google/gemma-4-27b-it", label: "Gemma 4 27B", params: "27B", ctx: "128k", quality: 1.14, speed: 0.72, role: "reasoning", tag: "flagship" },
+  // 2026 mid-tier
+  { id: "Qwen/Qwen3.5-9B-Instruct", label: "Qwen3.5 9B", params: "9B", ctx: "128k", quality: 1.08, speed: 0.95, role: "general", tag: "balanced" },
+  { id: "deepseek-ai/DeepSeek-V3.1-Flash", label: "DeepSeek V3.1 Flash", params: "16B", ctx: "128k", quality: 1.05, speed: 1.15, role: "code", tag: "fast" },
+  { id: "meta-llama/Llama-3.3-70B-Instruct", label: "Llama 3.3 70B", params: "70B", ctx: "128k", quality: 1.12, speed: 0.62, role: "general", tag: "legacy" },
+  // Edge models
+  { id: "nvidia/Llama-3_1-Nemotron-Nano-8B", label: "Nemotron Nano 8B", params: "8B", ctx: "128k", quality: 1.02, speed: 1.08, role: "edge", tag: "edge" },
+  { id: "mistralai/Mistral-Small-4-24B-Instruct", label: "Mistral Small 4 24B", params: "24B", ctx: "128k", quality: 1.06, speed: 0.90, role: "general", tag: "balanced" },
 ];
 
 /* per-agent role preference — the planner allocates accordingly */
@@ -301,6 +334,7 @@ export const AGENT_MODEL_PREFS: Record<AgentId, ModelRole> = {
   reviewer: "reasoning",
   security: "code",
   devops: "general",
+  debugger: "code",
   reporter: "general",
 };
 
