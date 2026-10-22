@@ -151,7 +151,7 @@ function DeployStatus() {
                 <ul className="mt-3 space-y-2">
                   {[
                     ["repo not pushed yet", "the URL cannot exist before the first push to main"],
-                    ["Pages source is wrong", "Settings → Pages → Source must read "GitHub Actions", not "Deploy from a branch""],
+                    ["Pages source is wrong", "Settings → Pages → Source must read 'GitHub Actions', not 'Deploy from a branch'"],
                     ["username casing", "github.io hostnames are lowercase — check every letter"],
                     ["first run still queued", "Actions tab → wait for the deploy job's green check (~1–2 min)"],
                   ].map(([t, d], i) => (
