@@ -237,4 +237,27 @@ Swap the deterministic specialists for LLM nodes; the prompts, memory contracts 
 
 ## License
 
+## Pipeline Architecture
+
+```mermaid
+flowchart TD
+    A1[Planner] --> A2[Research]
+    A2 --> A3[Coder]
+    A3 --> A4[QA]
+    A3 --> A5[Reviewer]
+    A3 --> A6[Security]
+    A4 --> A7[DevOps]
+    A5 --> A7
+    A6 --> A7
+    A7 --> A8[Reporter]
+```
+
+## Local Development
+
+```bash
+npm install
+npm run dev
+npm run build
+```
+
 MIT © 2026 Syed Mohammad Irtiza Rizvi — see [LICENSE](LICENSE).
