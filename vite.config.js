@@ -12,4 +12,15 @@ export default defineConfig({
       port: 3000,
     },
   },
-});
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['lucide-react', 'framer-motion', 'recharts'],
+          'vendor-export': ['jspdf', 'jszip'],
+        },
+      },
+    },
+  },
+})
