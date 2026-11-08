@@ -90,6 +90,7 @@ export default function App() {
   const [task, setTask] = useState("");
   const [autoApprove, setAutoApprove] = useState(false);
   const [liveWeb, setLiveWeb] = useState(true);
+  const [engineMode, setEngineMode] = useState<EngineMode>("sim");
   const [modelId, setModelId] = useState(HF_MODELS[0].id);
   const [notifyOn, setNotifyOn] = useState(false);
 
@@ -102,7 +103,7 @@ export default function App() {
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
 
   const active = operators.find((o) => o.id === activeId) ?? operators[0];
-  const orchRef = useRef<Orchestrator | null>(null);
+  const orchRef = useRef<Orchestrator | LiveOrchestrator | null>(null);
   const runningRef = useRef(false);
   const schedulesRef = useRef(schedules);
   const liveCountRef = useRef(0);
@@ -214,7 +215,8 @@ export default function App() {
       const ltmSnapshot = loadLtm(opId);
       const wantNotify = notifyOn;
 
-      const orch = new Orchestrator({
+      const EngineClass = engineMode === "live" ? LiveOrchestrator : Orchestrator;
+const orch = new EngineClassO{
         liveWeb,
         operator: opName,
         origin,
@@ -284,7 +286,7 @@ export default function App() {
 
       document.getElementById("console")?.scrollIntoView({ behavior: prm ? "auto" : "smooth", block: "start" });
     },
-    [task, autoApprove, liveWeb, modelId, active, notifyOn, prm, pushToast],
+    [task, autoApprove, liveWeb, engineMode, modelId, active, notifyOn, prm, pushToast],
   );
 
   const runRef = useRef(runSwarm);
@@ -511,9 +513,9 @@ export default function App() {
                 autoApprove={autoApprove}
                 setAutoApprove={setAutoApprove}
                 liveWeb={liveWeb}
-                setLiveWeb={setLiveWeb}
+                setLiveWeb={setLiveWeb} engineMode={engineMode}
                 modelId={modelId}
-                setModelId={setModelId}
+                setModelId={setModelId} setEngineMode={setEngineMode}
                 phase={phase}
               />
               <Pipeline
