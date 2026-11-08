@@ -1,7 +1,7 @@
 import { HF_MODELS, PRESETS, type Preset } from "../lib/knowledge";
 import type { Phase } from "../lib/types";
 import { Icon } from "../lib/ui";
-
+import type { EngineMode } from "../lib/liveEngine";
 const ROLE_COLOR: Record<string, string> = {
   reasoning: "var(--c-research)",
   code: "var(--c-coder)",
@@ -20,6 +20,8 @@ export default function TaskConsole({
   setAutoApprove,
   liveWeb,
   setLiveWeb,
+    engineMode = "sim",
+    setEngineMode,
   modelId,
   setModelId,
   phase,
@@ -34,6 +36,8 @@ export default function TaskConsole({
   setAutoApprove: (v: boolean) => void;
   liveWeb: boolean;
   setLiveWeb: (v: boolean) => void;
+    engineMode?: EngineMode;
+    setEngineMode?: (v: EngineMode) => void;
   modelId: string;
   setModelId: (v: string) => void;
   phase: Phase;
@@ -137,7 +141,30 @@ export default function TaskConsole({
             </span>
             live web
           </button>
-        </div>
+              {setEngineMode && (
+            <button
+              onClick={() => setEngineMode(engineMode === "live" ? "sim" : "live")}
+              role="switch"
+              aria-checked={engineMode === "live"}
+              title="Switch between browser simulation (Sim) and FastAPI + LangGraph SSE backend (Live API)"
+              className={`flex h-[46px] flex-1 touch-manipulation items-center justify-center gap-2.5 border px-3.5 font-mono text-xs uppercase tracking-wider transition-colors ${
+                engineMode === "live"
+                  ? "border-coder/60 bg-coder/10 text-coder"
+                  : "border-line text-mut hover:border-line2 hover:text-ink"
+              }`}
+            >
+              <span
+                className={`relative h-3.5 w-7 border transition-colors ${engineMode === "live" ? "border-coder" : "border-line"}`}
+              >
+                <span
+                  className={`absolute top-[-2px] h-2 w-2 transition-all duration-200 ${
+                    engineMode === "live" ? "left-[16px] bg-coder" : "left-[2px] bg-mut"
+                  }`}
+                />
+              </span>
+              engine: {engineMode === "live" ? "Live API" : "Sim"}
+            </button>
+          )}    </div>
       </div>
 
       {/* Hugging Face model selector — role-tagged, planner allocates per agent */}
