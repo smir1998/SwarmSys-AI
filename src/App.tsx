@@ -13,7 +13,7 @@ import ShipSection from "./components/ShipSection";
 import TaskConsole from "./components/TaskConsole";
 import TopBar from "./components/TopBar";
 import { Orchestrator } from "./lib/engine";
-import { HF_MODELS, detectDomain, type Preset } from "./lib/knowledge";
+import { LiveOrchestrator, type EngineMode } from "./lib/liveEngine";import { HF_MODELS, detectDomain, type Preset } from "./lib/knowledge";
 import {
   addOperator,
   clearLtm,
