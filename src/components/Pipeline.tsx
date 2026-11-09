@@ -1,13 +1,12 @@
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { AGENTS } from "../lib/knowledge";
 import type { AgentId, AgentRuntime, Phase, StageLine, Subtask } from "../lib/types";
 import { Icon, MarkdownLite } from "../lib/ui";
 
-/* ————— one streamed line ————— */
 const KIND_STYLE: Record<StageLine["kind"], { mark: string; cls: string }> = {
-  sys: { mark: "›", cls: "text-mut" },
-  info: { mark: "·", cls: "text-ink/85" },
-  data: { mark: "▪", cls: "text-research" },
+  sys: { mark: ">", cls: "text-mut" },
+  info: { mark: ".", cls: "text-ink/85" },
+  data: { mark: "•", cls: "text-research" },
   code: { mark: "", cls: "" },
   good: { mark: "✓", cls: "text-coder" },
   warn: { mark: "!", cls: "text-coral" },
@@ -30,7 +29,6 @@ function LineRow({ line }: { line: StageLine }) {
   );
 }
 
-/* ————— a stage card with auto-scrolling stream ————— */
 function StageCard({
   agent,
   lines,
@@ -87,7 +85,6 @@ function StageCard({
   );
 }
 
-/* ————— connector between stages ————— */
 function Connector({ label }: { label?: string }) {
   return (
     <div className="relative flex h-9 items-center justify-center">
@@ -101,7 +98,6 @@ function Connector({ label }: { label?: string }) {
   );
 }
 
-/* ————— the full pipeline ————— */
 export default function Pipeline({
   stages,
   agents,
@@ -128,13 +124,16 @@ export default function Pipeline({
   wallMs: number | null;
   ledgerNote: string | null;
   onApprove: () => void;
-  onRevise: () => void;
+  onRevise: (revisionNotes?: string) => void;
   onCopy: () => void;
   onDownload: () => void;
   onPdf: () => void;
   onNewRun: () => void;
   copied: boolean;
 }) {
+  const [revisionNotes, setRevisionNotes] = useState("");
+  const [reportTab, setReportTab] = useState<"rendered" | "raw">("rendered");
+
   const empty =
     phase === "idle" &&
     Object.values(stages).every((l) => l.length === 0) &&
@@ -156,10 +155,10 @@ export default function Pipeline({
         <p className="max-w-md font-mono text-xs leading-relaxed text-mut">
           Feed the swarm a goal above. The planner decomposes it, research and coder execute in
           parallel, QA runs the test matrix, the reviewer gates quality, security and devops harden
-          the ship — and the reporter assembles the final response.
+          the ship – and the reporter assembles the final response.
         </p>
         <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-mut/60">
-          plan → approve → exec ∥ → qa → review ↺ → harden ∥ → report
+          plan → approve → exec ∥ → qa → review 🔒 → harden ∥ → report
         </p>
       </div>
     );
@@ -196,31 +195,48 @@ export default function Pipeline({
 
       {/* human approval gate */}
       {phase === "approval" && (
-        <div className="gate-pulse my-4 flex flex-col items-center justify-between gap-4 border-2 border-amber bg-amber/5 px-5 py-4 sm:flex-row">
-          <div>
-            <p className="font-display text-sm font-bold uppercase tracking-[0.1em] text-amber">
-              Human approval required
-            </p>
-            <p className="mt-1 font-mono text-[10.5px] text-mut">
-              plan ready · {subtasks.length} subtasks · execution is paused on your call — this is the
-              critical-action gate
-            </p>
+        <div className="gate-pulse my-4 flex flex-col gap-3.5 border-2 border-amber bg-amber/5 px-5 py-4">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <p className="font-display text-sm font-bold uppercase tracking-[0.1em] text-amber">
+                Human approval required
+              </p>
+              <p className="mt-1 font-mono text-[10.5px] text-mut">
+                plan ready · {subtasks.length} subtasks · execution is paused on your call — this is the
+                critical-action gate
+              </p>
+            </div>
+            <div className="flex w-full shrink-0 gap-2.5 sm:w-auto">
+              <button
+                onClick={() => onRevise(revisionNotes.trim() || undefined)}
+                className="flex flex-1 touch-manipulation items-center justify-center gap-2 border border-amber/50 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-amber transition-all hover:bg-amber/10 sm:flex-none"
+              >
+                <Icon name="refresh" className="h-3.5 w-3.5" />
+                Revise scope
+              </button>
+              <button
+                onClick={onApprove}
+                className="flex flex-1 touch-manipulation items-center justify-center gap-2 bg-amber px-5 py-2.5 font-display text-xs font-bold uppercase tracking-[0.1em] text-[#0a0f12] transition-all hover:bg-ink hover:text-bg sm:flex-none"
+              >
+                <Icon name="check" className="h-3.5 w-3.5" />
+                Approve & run
+              </button>
+            </div>
           </div>
-          <div className="flex w-full shrink-0 gap-2.5 sm:w-auto">
-            <button
-              onClick={onRevise}
-              className="flex flex-1 touch-manipulation items-center justify-center gap-2 border border-amber/50 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-amber transition-all hover:bg-amber/10 sm:flex-none"
-            >
-              <Icon name="refresh" className="h-3.5 w-3.5" />
-              Revise scope
-            </button>
-            <button
-              onClick={onApprove}
-              className="flex flex-1 touch-manipulation items-center justify-center gap-2 bg-amber px-5 py-2.5 font-display text-xs font-bold uppercase tracking-[0.1em] text-[#0a0f12] transition-all hover:bg-ink hover:text-bg sm:flex-none"
-            >
-              <Icon name="check" className="h-3.5 w-3.5" />
-              Approve & run
-            </button>
+          <div className="flex items-center gap-2 border border-amber/30 bg-bg/80 px-3 py-2">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-amber/80">scope note:</span>
+            <input
+              value={revisionNotes}
+              onChange={(e) => setRevisionNotes(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && revisionNotes.trim()) {
+                  onRevise(revisionNotes.trim());
+                }
+              }}
+              placeholder="Optional guidance when clicking Revise scope (e.g. tighten SLA or add edge-case tests)..."
+              aria-label="Revision notes for A1 Planner"
+              className="w-full bg-transparent font-mono text-xs text-ink outline-none placeholder:text-mut/50"
+            />
           </div>
         </div>
       )}
@@ -251,7 +267,7 @@ export default function Pipeline({
       {report && (
         <div className="popin mt-6 border-2 border-line2 bg-panel">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
-            <p className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Icon name="zap" className="h-4 w-4 text-amber" />
               <span className="font-display text-sm font-bold uppercase tracking-[0.12em]">Final response</span>
               {ledgerNote && (
@@ -259,7 +275,23 @@ export default function Pipeline({
                   {ledgerNote}
                 </span>
               )}
-            </p>
+              <div className="flex items-center border border-line bg-bg p-0.5 font-mono text-[9px] uppercase tracking-wider">
+                <button
+                  type="button"
+                  onClick={() => setReportTab("rendered")}
+                  className={`px-2 py-0.5 transition-colors ${reportTab === "rendered" ? "bg-amber text-bg font-bold" : "text-mut hover:text-ink"}`}
+                >
+                  Rendered
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportTab("raw")}
+                  className={`px-2 py-0.5 transition-colors ${reportTab === "raw" ? "bg-amber text-bg font-bold" : "text-mut hover:text-ink"}`}
+                >
+                  Raw .md
+                </button>
+              </div>
+            </div>
             <div className="flex items-center gap-4">
               {score !== null && (
                 <p className="font-mono text-[11px] uppercase tracking-[0.12em]">
@@ -275,7 +307,11 @@ export default function Pipeline({
             </div>
           </div>
           <div className="max-h-[480px] overflow-y-auto px-5 py-4 md:px-7">
-            <MarkdownLite md={report} />
+            {reportTab === "rendered" ? (
+              <MarkdownLite md={report} />
+            ) : (
+              <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-ink/85">{report}</pre>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2.5 border-t border-line px-5 py-3.5">
             <button
