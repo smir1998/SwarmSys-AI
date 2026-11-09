@@ -216,7 +216,7 @@ export default function App() {
       const wantNotify = notifyOn;
 
       const EngineClass = engineMode === "live" ? LiveOrchestrator : Orchestrator;
-const orch = new Engin    const orch = new EngineClass({eClassO({{
+      const orch = new EngineClass({
         liveWeb,
         operator: opName,
         origin,
