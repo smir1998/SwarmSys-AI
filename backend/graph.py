@@ -23,7 +23,7 @@ DEFAULT_AGENT_MODELS: Dict[AgentId, str] = {
    "security": "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
    "devops": "Qwen/Qwen3.5-35B-A3B",
    "debugger": "deepseek-ai/DeepSeek-V3.1-Base",
-   "reporter": "google/gemma-3-27b-it", ,
+   "reporter": "google/gemma-3-27b-it",
 }
 
 def _now_ms() -> int: return int(time.time() * 1000)
