@@ -15,15 +15,15 @@ except ImportError:
     HAS_LANGGRAPH = False
 
 DEFAULT_AGENT_MODELS: Dict[AgentId, str] = {
-    "planner": "Qwen/Qwen3.5-27B-Instruct",
-    "research": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
-    "coder": "deepseek-ai/DeepSeek-V3.2",
-    "qa": "Qwen/Qwen3.5-27B-Instruct",
-    "reviewer": "google/gemma-4-27b-it",
-    "security": "meta-llama/Llama-Guard-3-8B",
-    "devops": "Qwen/Qwen3.5-27B-Instruct",
-    "debugger": "deepseek-ai/DeepSeek-V3.2",
-    "reporter": "google/gemma-4-27b-it",
+   "planner": "Qwen/Qwen3-235B-A22B-Thinking-2507",
+   "research": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+   "coder": "deepseek-ai/DeepSeek-V4-Flash",
+   "qa": "Qwen/Qwen3.5-35B-A3B",
+   "reviewer": "Qwen/Qwen3-235B-A22B-Instruct-2507",
+   "security": "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+   "devops": "Qwen/Qwen3.5-35B-A3B",
+   "debugger": "deepseek-ai/DeepSeek-V3.1-Base",
+   "reporter": "google/gemma-3-27b-it", ,
 }
 
 def _now_ms() -> int: return int(time.time() * 1000)
