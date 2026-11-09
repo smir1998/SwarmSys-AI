@@ -1,5 +1,5 @@
 from __future__ import annotations
-import asyncio, contextlib, json, os, sqlite3, time, urllib.request, uuid
+import asyncio, contextlib, json, os, sqlite3, time, uuid
 from typing import Any, AsyncGenerator, Dict, List, Literal, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,10 +28,10 @@ class PersistentStore:
 
     def list_operators(self) -> List[Dict[str, Any]]:
         with self._conn() as c:
-            return [dict(r) for r in c.execute("SELECT id, name, created_at AS createdAt FROM operators ORDER BY created_at ASC").fetchall()]
+            return [dict(r) for r in c.execute("SELECT id, name, created_at AS createdAt FROM operators ORDER BY created_at ASC LIMIT 100").fetchall()]
 
     def add_operator(self, name: str) -> Dict[str, Any]:
-        op = {"id": f"op_{uuid.uuid4().hex[:8]}", "name": name.strip(), "createdAt": int(time.time() * 1000)}
+        op = {"id": f"op_{uuid.uuid4().hex[:8]}", "name": name.strip()[:80], "createdAt": int(time.time() * 1000)}
         with self._conn() as c:
             c.execute("INSERT INTO operators VALUES (?, ?, ?)", (op["id"], op["name"], op["createdAt"]))
         return op
@@ -42,17 +42,17 @@ class PersistentStore:
 
     def push_ledger(self, r: Dict[str, Any]) -> Dict[str, Any]:
         with self._conn() as c:
-            c.execute("INSERT OR REPLACE INTO ledger VALUES (?,?,?,?,?,?,?,?,?)", (r["id"], r["task"], r["domain"], int(r["score"]), int(r["at"]), int(r["wallMs"]), r["report"], r["origin"], r["operator"]))
+            c.execute("INSERT OR REPLACE INTO ledger VALUES (?,?,?,?,?,?,?,?,?)", (r["id"], r["task"][:4000], r["domain"][:120], int(r["score"]), int(r["at"]), int(r["wallMs"]), r["report"][:50000], r["origin"], r["operator"][:80]))
         return r
 
     def list_ltm(self, op: str) -> List[Dict[str, str]]:
         with self._conn() as c:
-            return [dict(r) for r in c.execute("SELECT key, value FROM ltm WHERE operator = ? ORDER BY updated_at DESC", (op,)).fetchall()]
+            return [dict(r) for r in c.execute("SELECT key, value FROM ltm WHERE operator = ? ORDER BY updated_at DESC LIMIT 100", (op,)).fetchall()]
 
     def upsert_ltm(self, op: str, k: str, v: str) -> Dict[str, str]:
         with self._conn() as c:
-            c.execute("INSERT OR REPLACE INTO ltm VALUES (?,?,?,?)", (op, k, v, int(time.time() * 1000)))
-        return {"key": k, "value": v}
+            c.execute("INSERT OR REPLACE INTO ltm VALUES (?,?,?,?)", (op[:80], k[:120], v[:4000], int(time.time() * 1000)))
+        return {"key": k[:120], "value": v[:4000]}
 
     def clear_ltm(self, op: str) -> None:
         with self._conn() as c:
@@ -60,15 +60,15 @@ class PersistentStore:
 
     def list_schedules(self) -> List[Dict[str, Any]]:
         with self._conn() as c:
-            rows = c.execute("SELECT id, task, every_min AS everyMin, next_due AS nextDue, runs, enabled, operator, created_at AS createdAt FROM schedules ORDER BY created_at DESC").fetchall()
+            rows = c.execute("SELECT id, task, every_min AS everyMin, next_due AS nextDue, runs, enabled, operator, created_at AS createdAt FROM schedules ORDER BY created_at DESC LIMIT 100").fetchall()
             return [{**dict(r), "enabled": bool(r["enabled"])} for r in rows]
 
     def add_schedule(self, task: str, every_min: int, operator: str = "op-default") -> Dict[str, Any]:
         m = max(5, min(60, int(every_min)))
         now = int(time.time() * 1000)
-        s = {"id": f"sch_{uuid.uuid4().hex[:8]}", "task": task.strip(), "everyMin": m, "nextDue": now + m * 60000, "runs": 0, "enabled": True, "operator": operator, "createdAt": now}
+        s = {"id": f"sch_{uuid.uuid4().hex[:8]}", "task": task.strip()[:4000], "everyMin": m, "nextDue": now + m * 60000, "runs": 0, "enabled": True, "operator": operator[:80], "createdAt": now}
         with self._conn() as c:
-            c.execute("INSERT INTO schedules VALUES (?,?,?,?,?,1,?,?)", (s["id"], s["task"], m, s["nextDue"], 0, operator, now))
+            c.execute("INSERT INTO schedules VALUES (?,?,?,?,?,1,?,?)", (s["id"], s["task"], m, s["nextDue"], 0, s["operator"], now))
         return s
 
     def toggle_schedule(self, sid: str) -> Optional[Dict[str, Any]]:
@@ -120,36 +120,42 @@ async def lifespan(_app: FastAPI):
         task.cancel()
 
 class StartRunRequest(BaseModel):
-    task: str = Field(..., min_length=1)
-    operator: str = "op-default"
+    task: str = Field(..., min_length=1, max_length=4000)
+    operator: str = Field(default="op-default", max_length=80)
     origin: Literal["manual", "schedule"] = "manual"
     liveWeb: bool = True
     autoApprove: bool = False
-    modelId: Optional[str] = None
+    modelId: Optional[str] = Field(default=None, max_length=120)
 
 class ResumeRunRequest(BaseModel):
     action: Literal["approve", "revise", "abort"]
-    revisionNotes: Optional[str] = None
+    revisionNotes: Optional[str] = Field(default=None, max_length=1000)
 
 class OperatorCreateRequest(BaseModel):
-    name: str = Field(..., min_length=1)
+    name: str = Field(..., min_length=1, max_length=80)
 
 class LtmUpsertRequest(BaseModel):
-    key: str
-    value: str
+    key: str = Field(..., min_length=1, max_length=120)
+    value: str = Field(..., max_length=4000)
 
 class ScheduleCreateRequest(BaseModel):
-    task: str = Field(..., min_length=1)
+    task: str = Field(..., min_length=1, max_length=4000)
     everyMin: int = Field(default=15, ge=5, le=60)
-    operator: str = "op-default"
+    operator: str = Field(default="op-default", max_length=80)
+
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv("SWARMSYS_CORS_ORIGINS", "*").split(",") if o.strip()]
 
 app = FastAPI(title="SwarmSys-AI Production Backend", version="2.0.0", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_credentials=False, allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Accept", "Authorization"])
 
 def _sse(p: Dict[str, Any]) -> str: return f"data: {json.dumps(p)}\n\n"
 
 async def _stream_steps(run_id: str, init: Optional[SwarmState], resume: bool) -> AsyncGenerator[str, None]:
     if not resume:
+        if len(_run_start) > 100:
+            _run_start.pop(next(iter(_run_start)), None)
+        if len(engine_runner._checkpoints) > 100:
+            engine_runner._checkpoints.pop(next(iter(engine_runner._checkpoints)), None)
         _run_start[run_id] = int(time.time() * 1000)
         yield _sse({"type": "run_started", "runId": run_id})
     final_state: Optional[SwarmState] = None
