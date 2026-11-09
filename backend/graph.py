@@ -71,7 +71,7 @@ def run_pytest_in_sandbox(code_artifact: str, code_tests: str) -> Dict[str, Any]
         with open(os.path.join(tmpdir, "test_main.py"), "w", encoding="utf-8") as f: f.write(code_tests)
         cov_path = os.path.join(tmpdir, "coverage.json")
         cmd = ["python3", "-m", "pytest", "test_main.py", "-q", "--cov=main", f"--cov-report=json:{cov_path}"]
-        proc = subprocess.run(cmd, cwd=tmpdir, capture_output=True, text=True, timeout=25)
+       proc = subprocess.run(cmd, cwd=tmpdir, env={"PATH": os.environ.get("PATH", ""), "PYTHONPATH": tmpdir, "HOME": tmpdir}, capture_output=True, text=True, timeout=25) 
         passed = proc.returncode == 0
         cov_pct = 92.0 if passed else 45.0
         if os.path.exists(cov_path):
