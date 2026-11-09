@@ -1,0 +1,51 @@
+name: Backend CI & Security Audit
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "backend/**"
+      - "Dockerfile"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fastapi uvicorn pydantic pytest pytest-cov httpx
+
+      - name: Verify syntax & run integration smoke tests
+        env:
+          PYTHONPATH: backend
+        run: |
+          python -m py_compile backend/state.py backend/graph.py backend/server.py
+          python -c "
+          from fastapi.testclient import TestClient
+          from server import app
+          from graph import run_pytest_in_sandbox, run_security_audit
+          client = TestClient(app)
+          assert client.get('/api/health').json()['status'] == 'ok'
+          sbx = run_pytest_in_sandbox('def add(a,b): return a+b\n', 'from main import add\ndef test_add(): assert add(2,3)==5\n')
+          assert sbx['passed'] is True
+          sast = run_security_audit('def bad(x): return eval(x)\n', [], live_web=False)
+          assert 'BLOCKED' in sast['verdict']
+          r = client.post('/api/runs/stream', json={'task': 'Build rate limiter', 'autoApprove': False, 'liveWeb': False})
+          assert r.status_code == 200 and r.headers.get('X-Run-Id')
+          print('All backend smoke and security checks passed!')
+          "
