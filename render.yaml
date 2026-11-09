@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: swarmsys-ai-backend
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: HF_TOKEN
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: E2B_API_KEY
+        sync: false
+      - key: SWARMSYS_SQLITE_PATH
+        value: /tmp/swarmsys_prod.db
