@@ -109,7 +109,7 @@ export class LiveOrchestrator {
   }
 
   approve(): void { void this.resume("approve"); }
-  revise(): void { void this.resume("revise"); }
+  revise(revisionNotes?: string): void { void this.resume("revise", revisionNotes); }
 
   abort(): void {
     if (this.abortCtrl) { this.abortCtrl.abort(); this.abortCtrl = null; }
@@ -125,13 +125,13 @@ export class LiveOrchestrator {
     this.opts.onAbort?.();
   }
 
-  private async resume(action: "approve" | "revise"): Promise<void> {
+  private async resume(action: "approve" | "revise", revisionNotes?: string): Promise<void> {
     if (!this.runId) return;
     this.abortCtrl = new AbortController();
     const res = await fetch(`${this.baseUrl}/api/runs/${this.runId}/resume`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-      body: JSON.stringify({ action }),
+      body: JSON.stringify({ action, revisionNotes }),
       signal: this.abortCtrl.signal,
     });
     if (res.ok && res.body) await this.consume(res.body);
