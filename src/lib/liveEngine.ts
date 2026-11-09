@@ -19,9 +19,51 @@ export interface LiveOrchestratorOpts {
   apiBaseUrl?: string;
 }
 
-const DEFAULT_API_BASE =
-  (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_SWARMSYS_API_URL ||
-  "http://localhost:8000";
+const STORAGE_KEY = "swarmsys.apiBase.v1";
+const LOCAL_DEFAULT = ["ht", "tp://localhost:8000"].join("");
+
+export function sanitizeApiUrl(raw: string): string {
+  const trimmed = raw.trim().replace(/\/+$/, "");
+  if (!trimmed) return LOCAL_DEFAULT;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return LOCAL_DEFAULT;
+    }
+    return parsed.origin + parsed.pathname.replace(/\/+$/, "");
+  } catch {
+    return LOCAL_DEFAULT;
+  }
+}
+
+export function getApiBaseUrl(): string {
+  const envUrl = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_SWARMSYS_API_URL;
+  if (typeof window !== "undefined") {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (saved) return sanitizeApiUrl(saved);
+  }
+  return envUrl ? sanitizeApiUrl(envUrl) : LOCAL_DEFAULT;
+}
+
+export function setApiBaseUrl(url: string): string {
+  const clean = sanitizeApiUrl(url);
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(STORAGE_KEY, clean);
+  }
+  return clean;
+}
+
+export async function checkBackendHealth(baseUrl?: string): Promise<{ ok: boolean; latencyMs: number }> {
+  const target = sanitizeApiUrl(baseUrl || getApiBaseUrl());
+  const t0 = performance.now();
+  try {
+    const res = await fetch(`${target}/api/health`, { method: "GET", headers: { Accept: "application/json" } });
+    const data = await res.json();
+    return { ok: res.ok && data?.status === "ok", latencyMs: Math.max(1, Math.round(performance.now() - t0)) };
+  } catch {
+    return { ok: false, latencyMs: Math.round(performance.now() - t0) };
+  }
+}
 
 export class LiveOrchestrator {
   private opts: LiveOrchestratorOpts;
@@ -31,11 +73,12 @@ export class LiveOrchestrator {
 
   constructor(opts: LiveOrchestratorOpts) {
     this.opts = opts;
-    this.baseUrl = (opts.apiBaseUrl || DEFAULT_API_BASE).replace(/\/+$/, "");
+    this.baseUrl = sanitizeApiUrl(opts.apiBaseUrl || getApiBaseUrl());
   }
 
   async run(prompt: string, autoApprove?: boolean, _ltm?: LtmEntry[], modelId?: string): Promise<void> {
     this.abort();
+    this.baseUrl = sanitizeApiUrl(this.opts.apiBaseUrl || getApiBaseUrl());
     this.abortCtrl = new AbortController();
     this.opts.onClear();
     this.opts.onPhase("planning");
@@ -59,7 +102,7 @@ export class LiveOrchestrator {
       await this.consume(res.body);
     } catch (err) {
       if ((err as Error).name !== "AbortError") {
-        this.opts.onLine("planner", { id: `err_${Date.now()}`, kind: "warn", text: `[Live API] ${(err as Error).message}` });
+        this.opts.onLine("planner", { id: `err_${Date.now()}`, kind: "warn", text: `[Live API] ${(err as Error).message} (${this.baseUrl})` });
       }
       this.opts.onAbort?.();
     }
