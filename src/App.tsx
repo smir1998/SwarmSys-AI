@@ -143,7 +143,7 @@ export default function App() {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
-      const map: Record<string, ViewId> = { "1": "console", "2": "architecture", "3": "agents", "4": "prompts", "5": "ship" };
+            const map: Record<string, ViewId> = { "1": "console", "2": "architecture", "3": "agents", "4": "prompts", "5": "ship" };
       if (map[e.key]) switchView(map[e.key]);
     };
     window.addEventListener("keydown", onKey);
