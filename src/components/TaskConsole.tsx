@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { HF_MODELS, PRESETS, type Preset } from "../lib/knowledge";
+import { AGENTS, HF_MODELS, PRESETS, type Preset } from "../lib/knowledge";
 import { checkBackendHealth, getApiBaseUrl, setApiBaseUrl, type EngineMode } from "../lib/liveEngine";
-import type { Phase } from "../lib/types";
+import type { AgentId, Phase } from "../lib/types";
 import { Icon } from "../lib/ui";
 
 const ROLE_COLOR: Record<string, string> = {
@@ -10,6 +10,91 @@ const ROLE_COLOR: Record<string, string> = {
   general: "var(--c-amber)",
   edge: "var(--mut)",
 };
+
+export interface FlagshipModelSpec {
+  id: string;
+  label: string;
+  arch: string;
+  ctx: string;
+  role: "reasoning" | "code" | "general" | "edge";
+  specialist: AgentId;
+  badge: string;
+}
+
+export const UPGRADED_SWARM_MODELS: FlagshipModelSpec[] = [
+  {
+    id: "Qwen/Qwen3-235B-A22B-Thinking-2507",
+    label: "Qwen3 235B-A22B Thinking",
+    arch: "235B MoE (22B active · 128 experts)",
+    ctx: "256K native",
+    role: "reasoning",
+    specialist: "planner",
+    badge: "CoT DAG Planner",
+  },
+  {
+    id: "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+    label: "Llama 4 Scout 17B×16E",
+    arch: "109B MoE (17B active · 16 experts)",
+    ctx: "10M extended",
+    role: "reasoning",
+    specialist: "research",
+    badge: "Long-Context Synthesis",
+  },
+  {
+    id: "deepseek-ai/DeepSeek-V4-Flash",
+    label: "DeepSeek V4 Flash",
+    arch: "MoE Sparse Attention (27% FLOPs)",
+    ctx: "1M native",
+    role: "code",
+    specialist: "coder",
+    badge: "Primary Codegen",
+  },
+  {
+    id: "Qwen/Qwen3.5-35B-A3B",
+    label: "Qwen3.5 35B-A3B",
+    arch: "35B MoE (3B active)",
+    ctx: "128K native",
+    role: "edge",
+    specialist: "qa",
+    badge: "High-Speed Test Matrix",
+  },
+  {
+    id: "Qwen/Qwen3-235B-A22B-Instruct-2507",
+    label: "Qwen3 235B-A22B Instruct",
+    arch: "235B MoE (22B active)",
+    ctx: "256K→1M",
+    role: "general",
+    specialist: "reviewer",
+    badge: "Strict ≥85 Gate Auditor",
+  },
+  {
+    id: "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
+    label: "Llama 4 Maverick 17B×128E",
+    arch: "400B MoE (17B active · 128 experts)",
+    ctx: "1M native",
+    role: "reasoning",
+    specialist: "security",
+    badge: "SAST & Threat Triage",
+  },
+  {
+    id: "deepseek-ai/DeepSeek-V3.1-Base",
+    label: "DeepSeek V3.1 Hybrid-Think",
+    arch: "671B MoE (37B active · UE8M0 FP8)",
+    ctx: "128K native",
+    role: "code",
+    specialist: "debugger",
+    badge: "Traceback Auto-Patcher",
+  },
+  {
+    id: "google/gemma-3-27b-it",
+    label: "Gemma 3 27B-IT (QAT)",
+    arch: "27B Dense (14T tokens)",
+    ctx: "128K native",
+    role: "general",
+    specialist: "reporter",
+    badge: "Executive Dossier Synthesis",
+  },
+];
 
 export default function TaskConsole({
   task,
@@ -47,7 +132,10 @@ export default function TaskConsole({
   const canRun = task.trim().length > 0 && !running;
   const isLiveApi = engineMode === "live";
   const [apiUrl, setApiUrl] = useState<string>(() => getApiBaseUrl());
-  const [health, setHealth] = useState<{ status: "idle" | "checking" | "online" | "offline"; ms?: number }>({ status: "idle" });
+  const [health, setHealth] = useState<{ status: "idle" | "checking" | "online" | "offline"; ms?: number }>({
+    status: "idle",
+  });
+  const [showRoutingMatrix, setShowRoutingMatrix] = useState(false);
 
   const pingHealth = async (targetUrl?: string) => {
     const clean = setApiBaseUrl(targetUrl ?? apiUrl);
@@ -65,11 +153,16 @@ export default function TaskConsole({
 
   return (
     <div className="border-2 border-line bg-panel transition-colors duration-300 focus-within:border-amber">
-      <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-2.5">
-        <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-mut">
-          <Icon name="terminal" className="h-3.5 w-3.5 text-amber" />
-          Operator input
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line px-4 py-2.5">
+        <div className="flex items-center gap-3">
+          <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-mut">
+            <Icon name="terminal" className="h-3.5 w-3.5 text-amber" />
+            Operator input
+          </p>
+          <span className="border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-mut">
+            {isLiveApi ? "langgraph sse runtime" : "deterministic browser sim"}
+          </span>
+        </div>
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mut">
           {running ? (
             <span className="text-amber">
@@ -93,7 +186,7 @@ export default function TaskConsole({
             onKeyDown={(e) => {
               if (e.key === "Enter" && canRun) onRun();
             }}
-            placeholder="Describe the task — e.g. build a spam email detector"
+            placeholder="Describe the task — e.g. build a distributed token-bucket rate limiter"
             aria-label="Task for the swarm"
             className="w-full bg-transparent font-mono text-base text-ink outline-none md:text-sm"
           />
@@ -229,9 +322,9 @@ export default function TaskConsole({
         </div>
       )}
 
-      {/* Hugging Face model selector – role-tagged, planner allocates per agent */}
+      {/* Hugging Face model selector + 9-Specialist Routing Matrix drawer */}
       <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-mut">hf model:</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-mut">lead model:</span>
         {HF_MODELS.map((m) => {
           const active = m.id === modelId;
           const rc = ROLE_COLOR[m.role];
@@ -240,7 +333,7 @@ export default function TaskConsole({
               key={m.id}
               onClick={() => setModelId(m.id)}
               disabled={running}
-              title={`${m.id} · ${m.role} · ${m.ctx} context · quality ×${m.quality} · speed ×${m.speed} — the planner distributes sub-tasks across available open models`}
+              title={`${m.id} · ${m.role} · ${m.ctx} context · quality ×${m.quality} · speed ×${m.speed}`}
               className={`flex items-center gap-1.5 border px-2.5 py-1 font-mono text-[10px] transition-all duration-200 ${
                 active ? "bg-panel2" : "text-mut hover:border-line2 hover:text-ink"
               }`}
@@ -259,11 +352,66 @@ export default function TaskConsole({
             </button>
           );
         })}
-        <span className="ml-auto hidden font-mono text-[9px] uppercase tracking-[0.14em] text-mut/70 lg:inline">
-          <span className="text-research">•</span> reasoning <span className="text-coder ml-1.5">•</span> code{" "}
-          <span className="text-amber ml-1.5">•</span> general <span className="text-mut ml-1.5">•</span> edge
-        </span>
+        <button
+          type="button"
+          onClick={() => setShowRoutingMatrix((v) => !v)}
+          className="ml-auto border border-line px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-amber transition-colors hover:border-amber/60 hover:bg-amber/10"
+        >
+          {showRoutingMatrix ? "hide specialist routing ▴" : "9-agent model routing ▾"}
+        </button>
       </div>
+
+      {/* Expandable Flagship MoE Specialist Routing Matrix */}
+      {showRoutingMatrix && (
+        <div className="border-t border-line bg-bg/50 px-4 py-3.5">
+          <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-amber">
+              upgraded 2026 open-weight specialist model stack (per-node routing)
+            </p>
+            <span className="font-mono text-[9.5px] text-mut">
+              click any specialist card to set its model as the lead orchestrator
+            </span>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {UPGRADED_SWARM_MODELS.map((spec) => {
+              const ag = AGENTS[spec.specialist];
+              const isSelected = modelId === spec.id;
+              return (
+                <button
+                  key={spec.id}
+                  type="button"
+                  onClick={() => setModelId(spec.id)}
+                  disabled={running}
+                  className={`flex flex-col justify-between border p-2.5 text-left transition-all ${
+                    isSelected
+                      ? "border-amber bg-amber/10"
+                      : "border-line bg-panel hover:border-line2"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-1.5">
+                      <span
+                        className="font-display text-[10px] font-bold uppercase tracking-wider"
+                        style={{ color: ag.color }}
+                      >
+                        {ag.name}
+                      </span>
+                      <span className="border border-line px-1.5 py-px font-mono text-[8.5px] text-mut">
+                        {spec.ctx}
+                      </span>
+                    </div>
+                    <p className="mt-1 font-mono text-[11px] font-semibold text-ink">{spec.label}</p>
+                    <p className="mt-0.5 font-mono text-[9px] text-mut">{spec.arch}</p>
+                  </div>
+                  <p className="mt-2 border-t border-line/60 pt-1.5 font-mono text-[8.5px] uppercase tracking-wider text-amber/90">
+                    {spec.badge}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* predefined preset cases – task + model + policy in one click */}
       <div className="border-t border-line px-4 py-3.5">
