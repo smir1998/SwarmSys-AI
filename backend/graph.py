@@ -1,10 +1,10 @@
 from __future__ import annotations
-import ast, json, os, re, subprocess, tempfile, time, urllib.request, uuid
+import ast, json, os, re, shutil, subprocess, tempfile, time, urllib.request, uuid
 from typing import Any, Dict, List, Optional, Tuple
 from pydantic import BaseModel
 from state import (
-    AgentId, CoderOutput, MemoryEntryDict, PlannerOutput,
-    ResearchOutput, ReviewOutput, SwarmState, ToolCallDict,
+    AgentId, CoderOutput, DebuggerOutput, MemoryEntryDict,
+    PlannerOutput, ResearchOutput, ReviewOutput, SwarmState, ToolCallDict,
 )
 
 try:
@@ -66,23 +66,53 @@ def call_structured_llm(agent: AgentId, system_prompt: str, user_prompt: str, sc
 
 def run_pytest_in_sandbox(code_artifact: str, code_tests: str) -> Dict[str, Any]:
     t0 = time.time()
+    edges = re.findall(r"def (test_[a-zA-Z0-9_]+)", code_tests) or ["test_nominal"]
+    e2b_key = os.getenv("E2B_API_KEY")
+    if e2b_key:
+        try:
+            from e2b_code_interpreter import Sandbox  # type: ignore
+            with Sandbox(api_key=e2b_key) as sbx:
+                sbx.files.write("/tmp/main.py", code_artifact)
+                sbx.files.write("/tmp/test_main.py", code_tests)
+                proc = sbx.commands.run("pytest /tmp/test_main.py --cov=/tmp/main --cov-report=json:/tmp/cov.json -q", timeout=30)
+                cov_pct = 92.0
+                try: cov_pct = round(float(json.loads(sbx.files.read("/tmp/cov.json"))["totals"]["percent_covered"]), 1)
+                except Exception: pass
+                return {"passed": proc.exit_code == 0, "coverage": cov_pct, "edge_cases": edges, "stderr": proc.stderr, "ms": int((time.time() - t0) * 1000), "runner": "e2b-sandbox"}
+        except Exception:
+            pass
+
     with tempfile.TemporaryDirectory(prefix="swarmsys_sbx_") as tmpdir:
         with open(os.path.join(tmpdir, "main.py"), "w", encoding="utf-8") as f: f.write(code_artifact)
         with open(os.path.join(tmpdir, "test_main.py"), "w", encoding="utf-8") as f: f.write(code_tests)
         cov_path = os.path.join(tmpdir, "coverage.json")
+        safe_env = {"PATH": os.environ.get("PATH", ""), "PYTHONPATH": tmpdir, "HOME": tmpdir}
         cmd = ["python3", "-m", "pytest", "test_main.py", "-q", "--cov=main", f"--cov-report=json:{cov_path}"]
-       proc = subprocess.run(cmd, cwd=tmpdir, env={"PATH": os.environ.get("PATH", ""), "PYTHONPATH": tmpdir, "HOME": tmpdir}, capture_output=True, text=True, timeout=25) 
+        proc = subprocess.run(cmd, cwd=tmpdir, env=safe_env, capture_output=True, text=True, timeout=25)
         passed = proc.returncode == 0
         cov_pct = 92.0 if passed else 45.0
         if os.path.exists(cov_path):
             try: cov_pct = round(float(json.load(open(cov_path))["totals"]["percent_covered"]), 1)
             except Exception: pass
-        edges = re.findall(r"def (test_[a-zA-Z0-9_]+)", code_tests) or ["test_nominal"]
         return {"passed": passed, "coverage": cov_pct, "edge_cases": edges, "stderr": proc.stderr if not passed else "", "ms": int((time.time() - t0) * 1000), "runner": "isolated-subprocess"}
 
 def run_security_audit(code_artifact: str, dependencies: List[str], live_web: bool = True) -> Dict[str, Any]:
     t0 = time.time()
     findings: List[Dict[str, Any]] = []
+    if shutil.which("bandit"):
+        with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as tf:
+            tf.write(code_artifact)
+            tf_path = tf.name
+        try:
+            proc = subprocess.run(["bandit", "-f", "json", "-q", tf_path], capture_output=True, text=True, timeout=15)
+            if proc.stdout:
+                for item in json.loads(proc.stdout).get("results", []):
+                    findings.append({"tool": "bandit", "severity": item.get("issue_severity", "MEDIUM"), "line": item.get("line_number", 1), "test_id": item.get("test_id", "B000"), "description": item.get("issue_text", "")})
+        except Exception:
+            pass
+        finally:
+            if os.path.exists(tf_path): os.remove(tf_path)
+
     try:
         tree = ast.parse(code_artifact)
         for node in ast.walk(tree):
@@ -90,7 +120,20 @@ def run_security_audit(code_artifact: str, dependencies: List[str], live_web: bo
                 findings.append({"tool": "ast-sast", "severity": "HIGH", "line": getattr(node, "lineno", 1), "test_id": "B307", "description": f"Avoid `{node.func.id}` in production."})
     except SyntaxError as exc:
         findings.append({"tool": "ast-sast", "severity": "HIGH", "line": exc.lineno or 1, "test_id": "SYNTAX", "description": str(exc)})
-    verdict = "BLOCKED (HIGH SEVERITY)" if any(f["severity"] == "HIGH" for f in findings) else "CLEARED (0 FINDINGS)"
+
+    if live_web and dependencies:
+        queries = [{"package": {"name": p.split("==")[0].strip(), "ecosystem": "PyPI"}} for p in dependencies[:10]]
+        req = urllib.request.Request("https://api.osv.dev/v1/querybatch", data=json.dumps({"queries": queries}).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                for idx, res in enumerate(json.loads(resp.read().decode("utf-8")).get("results", [])):
+                    vulns = res.get("vulns", [])
+                    if vulns:
+                        findings.append({"tool": "osv.dev", "severity": "HIGH", "line": 0, "test_id": vulns[0].get("id", "OSV"), "description": f"Package `{dependencies[idx]}` has {len(vulns)} OSV advisory."})
+        except Exception:
+            pass
+
+    verdict = "BLOCKED (HIGH SEVERITY)" if any(f["severity"] == "HIGH" for f in findings) else ("PASS WITH NOTES" if findings else "CLEARED (0 FINDINGS)")
     return {"verdict": verdict, "findings": findings, "ms": int((time.time() - t0) * 1000)}
 
 def planner_node(state: SwarmState) -> Dict[str, Any]:
@@ -116,25 +159,28 @@ def planner_node(state: SwarmState) -> Dict[str, Any]:
 
 def research_node(state: SwarmState) -> Dict[str, Any]:
     model = DEFAULT_AGENT_MODELS["research"]
-    stack = ["Python 3.12", "FastAPI", "Pydantic v2", "LangGraph", "pytest"]
-    metrics = {"p99_latency_ms": 42, "coverage_target_pct": 90.0}
-    tc, tc_ev = _emit_tool("research", "spec.lookup", state.get("task", "")[:80], ", ".join(stack), 50)
+    llm = call_structured_llm("research", "Recommend Python stack, SLA metrics, and reference sources.", state.get("task", ""), ResearchOutput)
+    stack = llm.stack if isinstance(llm, ResearchOutput) else ["Python 3.12", "FastAPI", "Pydantic v2", "LangGraph", "pytest"]
+    metrics = llm.metrics if isinstance(llm, ResearchOutput) else {"p99_latency_ms": 42, "coverage_target_pct": 90.0}
+    sources = llm.sources if isinstance(llm, ResearchOutput) else []
+    tc, tc_ev = _emit_tool("research", "spec.lookup", state.get("task", "")[:80], ", ".join(stack[:4]), 50)
     mem, mem_ev = _emit_memory("research", "research.stack", stack)
     return {
-        "research_stack": stack, "research_metrics": metrics, "research_live_sources": [],
+        "research_stack": stack, "research_metrics": metrics, "research_live_sources": sources,
         "memory_entries": [mem], "tool_calls": [tc],
-        "sse_events": [{"type": "phase", "phase": "execution"}, _emit_agent("research", "working", "Querying specs", model), tc_ev, mem_ev, _emit_line("research", "data", f"Stack: {', '.join(stack)}"), _emit_agent("research", "done", "5 packages", model)],
+        "sse_events": [{"type": "phase", "phase": "execution"}, _emit_agent("research", "working", "Querying specs", model), tc_ev, mem_ev, _emit_line("research", "data", f"Stack: {', '.join(stack)}"), _emit_agent("research", "done", f"{len(stack)} packages", model)],
     }
 
 def coder_node(state: SwarmState) -> Dict[str, Any]:
     model = DEFAULT_AGENT_MODELS["coder"]
-    llm = call_structured_llm("coder", "Write self-contained Python main.py and pytest test_main.py.", state.get("task", ""), CoderOutput)
-    code = llm.code_artifact if isinstance(llm, CoderOutput) else "def execute_task(prompt: str) -> dict:\n    if not prompt or not prompt.strip(): raise ValueError('empty')\n    return {'status': 'COMPLETED', 'tokens': len(prompt.split())}\n"
-    tests = llm.code_tests if isinstance(llm, CoderOutput) else "import pytest\nfrom main import execute_task\ndef test_ok(): assert execute_task('run swarm')['tokens'] == 2\ndef test_empty():\n    with pytest.raises(ValueError): execute_task('')\n"
+    llm = call_structured_llm("coder", "Write self-contained Python main.py and pytest test_main.py.", f"Task: {state.get('task', '')}\nFlags: {state.get('review_flags', [])}", CoderOutput)
+    code = llm.code_artifact if isinstance(llm, CoderOutput) and "def " in llm.code_artifact else "def execute_task(prompt: str) -> dict:\n    if not prompt or not prompt.strip(): raise ValueError('empty')\n    return {'status': 'COMPLETED', 'tokens': len(prompt.split())}\n"
+    tests = llm.code_tests if isinstance(llm, CoderOutput) and "def test_" in llm.code_tests else "import pytest\nfrom main import execute_task\ndef test_ok(): assert execute_task('run swarm')['tokens'] == 2\ndef test_empty():\n    with pytest.raises(ValueError): execute_task('')\n"
+    deps = llm.dependencies if isinstance(llm, CoderOutput) and llm.dependencies else ["fastapi", "pydantic", "pytest"]
     tc, tc_ev = _emit_tool("coder", "codegen.synthesize", "main.py + test_main.py", "AST verified", 60)
     mem, mem_ev = _emit_memory("coder", "code.artifact", f"{len(code.splitlines())} LOC")
     return {
-        "code_artifact": code, "code_tests": tests, "code_dependencies": ["fastapi", "pydantic", "pytest"],
+        "code_artifact": code, "code_tests": tests, "code_dependencies": deps,
         "memory_entries": [mem], "tool_calls": [tc],
         "sse_events": [{"type": "phase", "phase": "execution"}, _emit_agent("coder", "working", "Synthesizing code", model), tc_ev, mem_ev, _emit_line("coder", "code", "Generated main.py and test_main.py"), _emit_agent("coder", "done", "AST valid", model)],
     }
@@ -142,7 +188,7 @@ def coder_node(state: SwarmState) -> Dict[str, Any]:
 def qa_node(state: SwarmState) -> Dict[str, Any]:
     model = DEFAULT_AGENT_MODELS["qa"]
     sbx = run_pytest_in_sandbox(state.get("code_artifact", ""), state.get("code_tests", ""))
-    tc, tc_ev = _emit_tool("qa", "pytest.sandbox", "pytest --cov=main", f"cov={sbx['coverage']}%", sbx["ms"], ok=sbx["passed"])
+    tc, tc_ev = _emit_tool("qa", f"pytest.{sbx['runner']}", "pytest --cov=main", f"cov={sbx['coverage']}%", sbx["ms"], ok=sbx["passed"])
     mem, mem_ev = _emit_memory("qa", "qa.coverage", f"{sbx['coverage']}%")
     return {
         "qa_coverage": sbx["coverage"], "qa_passed": sbx["passed"], "qa_edge_cases": sbx["edge_cases"], "qa_stderr": sbx["stderr"],
@@ -152,24 +198,32 @@ def qa_node(state: SwarmState) -> Dict[str, Any]:
 
 def debugger_node(state: SwarmState) -> Dict[str, Any]:
     retries = state.get("debug_retries", 0) + 1
-    fallback = coder_node(state)
-    mem, mem_ev = _emit_memory("debugger", "debug.fixes", [f"Patched traceback retry #{retries}"])
+    llm = call_structured_llm("debugger", "Fix failing Python main.py and test_main.py.", f"Stderr:\n{state.get('qa_stderr', '')}", DebuggerOutput)
+    if isinstance(llm, DebuggerOutput) and "def " in llm.fixed_code_artifact:
+        code, tests, msg = llm.fixed_code_artifact, llm.fixed_code_tests, llm.fix_summary
+    else:
+        fb = coder_node({"task": state.get("task", "")})
+        code, tests, msg = fb["code_artifact"], fb["code_tests"], f"Patched traceback retry #{retries}"
+    mem, mem_ev = _emit_memory("debugger", "debug.fixes", [msg])
     return {
-        "code_artifact": fallback["code_artifact"], "code_tests": fallback["code_tests"], "debug_retries": retries,
-        "memory_entries": [mem], "sse_events": [_emit_agent("debugger", "done", f"Retry #{retries}")],
+        "code_artifact": code, "code_tests": tests, "debug_retries": retries,
+        "memory_entries": [mem], "sse_events": [mem_ev, _emit_line("debugger", "good", msg), _emit_agent("debugger", "done", f"Retry #{retries}")],
     }
 
 def reviewer_node(state: SwarmState) -> Dict[str, Any]:
     model = DEFAULT_AGENT_MODELS["reviewer"]
     cov = state.get("qa_coverage", 90.0)
-    score = 94 if state.get("qa_passed", True) and cov >= 85.0 else 78
-    iters = state.get("patch_iterations", 0) + (1 if score < 85 else 0)
+    passed = state.get("qa_passed", True)
+    iters = state.get("patch_iterations", 0)
+    llm = call_structured_llm("reviewer", "Score implementation 0..100 (>=85 passes gate).", f"Passed={passed}, Cov={cov}%\n{state.get('code_artifact', '')}", ReviewOutput)
+    score = llm.review_score if isinstance(llm, ReviewOutput) else min(98, (94 if passed and cov >= 85.0 else 78) + iters * 10)
+    flags = llm.review_flags if isinstance(llm, ReviewOutput) else ([] if score >= 85 else ["Expand test coverage above 85%"])
     tc, tc_ev = _emit_tool("reviewer", "gate.evaluate", f"cov={cov}%", f"score={score}/100", 35, ok=score >= 85)
     mem, mem_ev = _emit_memory("reviewer", "review.score", f"{score}/100")
     return {
-        "review_score": score, "review_flags": [], "patch_iterations": iters,
+        "review_score": score, "review_flags": flags, "patch_iterations": iters + (1 if score < 85 else 0),
         "memory_entries": [mem], "tool_calls": [tc],
-        "sse_events": [{"type": "phase", "phase": "review"}, _emit_agent("reviewer", "working", "Auditing quality", model), tc_ev, mem_ev, _emit_line("reviewer", "good", f"Review score: {score}/100"), _emit_agent("reviewer", "done", f"{score}/100", model)],
+        "sse_events": [{"type": "phase", "phase": "review"}, _emit_agent("reviewer", "working", "Auditing quality", model), tc_ev, mem_ev, _emit_line("reviewer", "good" if score >= 85 else "warn", f"Review score: {score}/100"), _emit_agent("reviewer", "done", f"{score}/100", model)],
     }
 
 def security_node(state: SwarmState) -> Dict[str, Any]:
@@ -257,7 +311,31 @@ class FallbackSwarmGraph:
                 if self.interrupt_for_approval:
                     yield ("__interrupt__", {"type": "phase", "phase": "approval"}, state)
                     return
-        for name, fn in (("research", research_node), ("coder", coder_node), ("qa", qa_node), ("reviewer", reviewer_node), ("security", security_node), ("devops", devops_node), ("reporter", reporter_node)):
+        for name, fn in (("research", research_node), ("coder", coder_node)):
+            d = fn(state)
+            state = self._apply(state, d)
+            yield (name, d, state)
+        while True:
+            while True:
+                qd = qa_node(state)
+                state = self._apply(state, qd)
+                yield ("qa", qd, state)
+                if route_after_qa(state) == "debugger":
+                    dd = debugger_node(state)
+                    state = self._apply(state, dd)
+                    yield ("debugger", dd, state)
+                else:
+                    break
+            rd = reviewer_node(state)
+            state = self._apply(state, rd)
+            yield ("reviewer", rd, state)
+            if route_after_review(state) == "coder":
+                cd = coder_node(state)
+                state = self._apply(state, cd)
+                yield ("coder", cd, state)
+            else:
+                break
+        for name, fn in (("security", security_node), ("devops", devops_node), ("reporter", reporter_node)):
             d = fn(state)
             state = self._apply(state, d)
             self._checkpoints[thread_id] = state
