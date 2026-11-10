@@ -260,4 +260,27 @@ npm run dev
 npm run build
 ```
 
+## Production FastAPI + LangGraph Backend (`backend/`) & 2026 Model Stack
+
+SwarmSys-AI includes a full **FastAPI + LangGraph SSE backend** (`backend/state.py`, `backend/graph.py`, `backend/server.py`) alongside the browser simulation mode (`engine: Sim | Live API` in Panel 01):
+
+| Specialist | 2026 Flagship Hugging Face Model | Architecture | Role |
+| :--- | :--- | :--- | :--- |
+| **A1 Planner** | `Qwen/Qwen3-235B-A22B-Thinking-2507` | 235B MoE (`22B` active) | CoT DAG decomposition & human approval gate |
+| **A2 Research** | `meta-llama/Llama-4-Scout-17B-16E-Instruct` | 109B MoE (`17B` active) | `10M` extended-context specification synthesis |
+| **A3 Coder** | `deepseek-ai/DeepSeek-V4-Flash` | Sparse-Attention MoE (`1M` ctx) | High-throughput `main.py` & `test_main.py` synthesis |
+| **A4 QA & A7 DevOps** | `Qwen/Qwen3.5-35B-A3B` | 35B MoE (`3B` active) | Isolated `pytest --cov` runner & `Dockerfile` / `render.yaml` |
+| **A5 Reviewer** | `Qwen/Qwen3-235B-A22B-Instruct-2507` | 235B MoE (`22B` active) | Structured Pydantic quality gate (`review_score >= 85`) |
+| **A6 Security** | `meta-llama/Llama-4-Maverick-17B-128E-Instruct` | 400B MoE (`17B` active · 128E) | Bandit SAST, AST inspection & live OSV.dev audit |
+| **A8 Debugger** | `deepseek-ai/DeepSeek-V3.1-Base` | 671B MoE (`37B` active) | Automated traceback patching on test failure |
+| **A9 Reporter** | `google/gemma-3-27b-it` | 27B Dense (`14T` tokens) | Executive Markdown & PDF dossier compilation |
+
+### Running the Backend Locally or on Render
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn server:app --reload --port 8000
+```
+To deploy in one click on Render, select **New -> Blueprint** in the Render Dashboard and connect `smir1998/SwarmSys-AI` (uses the root `render.yaml` and `Dockerfile`).
+
 MIT © 2026 Syed Mohammad Irtiza Rizvi — see [LICENSE](LICENSE).
