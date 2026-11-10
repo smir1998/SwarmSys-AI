@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AGENTS } from "../lib/knowledge";
 import type { AgentId, AgentRuntime, Phase, StageLine, Subtask } from "../lib/types";
 import { Icon, MarkdownLite } from "../lib/ui";
@@ -49,12 +49,14 @@ function StageCard({
     if (el) el.scrollTop = el.scrollHeight;
   }, [lines.length]);
   const active = rt.status === "thinking" || rt.status === "working";
+  const shortModel = rt.model ? rt.model.split("/").pop() : undefined;
+
   return (
     <div
       className="border border-line bg-panel transition-all duration-300"
       style={{ boxShadow: active ? `0 0 28px -10px ${def.color}` : undefined }}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2.5">
         <p className="flex items-center gap-2.5">
           <span
             className={`inline-block h-2 w-2 rounded-full ${active ? "led-fast" : ""}`}
@@ -66,8 +68,20 @@ function StageCard({
           <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-mut">
             {rt.status === "idle" ? "queued" : rt.status === "done" ? "done" : rt.status}
           </span>
+          {shortModel && (
+            <span className="hidden border border-line bg-bg px-1.5 py-px font-mono text-[8.5px] text-mut sm:inline">
+              {shortModel}
+            </span>
+          )}
         </p>
-        <span className="truncate font-mono text-[9px] uppercase tracking-[0.12em] text-mut">{rt.meta}</span>
+        <div className="flex items-center gap-2">
+          {lines.length > 0 && (
+            <span className="font-mono text-[8.5px] uppercase tracking-wider text-mut/60">
+              {lines.length} lines
+            </span>
+          )}
+          <span className="truncate font-mono text-[9px] uppercase tracking-[0.12em] text-mut">{rt.meta}</span>
+        </div>
       </div>
       <div ref={bodyRef} className="overflow-auto px-4 py-3" style={{ maxHeight: maxH, minHeight: 76 }}>
         {lines.length === 0 && !active ? (
@@ -132,7 +146,35 @@ export default function Pipeline({
   copied: boolean;
 }) {
   const [revisionNotes, setRevisionNotes] = useState("");
-  const [reportTab, setReportTab] = useState<"rendered" | "raw">("rendered");
+  const [reportTab, setReportTab] = useState<"rendered" | "code" | "raw">("rendered");
+  const [orderedSubtasks, setOrderedSubtasks] = useState<Subtask[]>(subtasks);
+
+  useEffect(() => {
+    setOrderedSubtasks(subtasks);
+  }, [subtasks]);
+
+  const moveSubtask = (idx: number, dir: -1 | 1) => {
+    setOrderedSubtasks((prev) => {
+      const target = idx + dir;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      const [item] = next.splice(idx, 1);
+      next.splice(target, 0, item);
+      return next;
+    });
+  };
+
+  const extractedCodeBlocks = useMemo(() => {
+    if (!report) return "";
+    const matches = [...report.matchAll(/```(?:python|py|ts|tsx|dockerfile|yaml|bash)?\n([\s\S]*?)```/gi)];
+    if (matches.length === 0) {
+      return stages.coder
+        .filter((l) => l.kind === "code")
+        .map((l) => l.text)
+        .join("\n");
+    }
+    return matches.map((m, i) => `# --- Artifact Block ${i + 1} ---\n${m[1].trim()}`).join("\n\n");
+  }, [report, stages.coder]);
 
   const empty =
     phase === "idle" &&
@@ -169,16 +211,45 @@ export default function Pipeline({
   return (
     <div>
       {/* planner */}
-      <StageCard agent="planner" lines={stages.planner} rt={agents.planner} maxH={250}>
-        {subtasks.length > 0 && (
+      <StageCard agent="planner" lines={stages.planner} rt={agents.planner} maxH={260}>
+        {orderedSubtasks.length > 0 && (
           <div className="mt-3 border-t border-line pt-3">
-            <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.2em] text-mut">approved subtask graph</p>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-mut">approved subtask graph</p>
+              {phase === "approval" && (
+                <span className="font-mono text-[8.5px] uppercase tracking-wider text-amber/80">
+                  use ▲/▼ to reprioritize before approval
+                </span>
+              )}
+            </div>
             <div className="space-y-1.5">
-              {subtasks.map((st, i) => (
+              {orderedSubtasks.map((st, i) => (
                 <div key={st.id} className="flex items-center gap-2.5 font-mono text-[10.5px]">
                   <span className="text-mut">{String(i + 1).padStart(2, "0")}</span>
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: AGENTS[st.owner].color }} />
                   <span className="min-w-0 flex-1 truncate text-ink/80">{st.text}</span>
+                  {phase === "approval" && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => moveSubtask(i, -1)}
+                        disabled={i === 0}
+                        title="Move subtask up"
+                        className="border border-line px-1 py-px text-[8.5px] text-mut hover:border-amber hover:text-amber disabled:opacity-30"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveSubtask(i, 1)}
+                        disabled={i === orderedSubtasks.length - 1}
+                        title="Move subtask down"
+                        className="border border-line px-1 py-px text-[8.5px] text-mut hover:border-amber hover:text-amber disabled:opacity-30"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  )}
                   <span className="hidden gap-1 sm:flex">
                     {st.tools.slice(0, 2).map((t) => (
                       <span key={t} className="border border-line px-1 py-px text-[8.5px] text-mut">
@@ -202,7 +273,7 @@ export default function Pipeline({
                 Human approval required
               </p>
               <p className="mt-1 font-mono text-[10.5px] text-mut">
-                plan ready · {subtasks.length} subtasks · execution is paused on your call — this is the
+                plan ready · {orderedSubtasks.length} subtasks · execution is paused on your call — this is the
                 critical-action gate
               </p>
             </div>
@@ -285,6 +356,13 @@ export default function Pipeline({
                 </button>
                 <button
                   type="button"
+                  onClick={() => setReportTab("code")}
+                  className={`px-2 py-0.5 transition-colors ${reportTab === "code" ? "bg-coder text-bg font-bold" : "text-mut hover:text-ink"}`}
+                >
+                  Code Artifacts
+                </button>
+                <button
+                  type="button"
                   onClick={() => setReportTab("raw")}
                   className={`px-2 py-0.5 transition-colors ${reportTab === "raw" ? "bg-amber text-bg font-bold" : "text-mut hover:text-ink"}`}
                 >
@@ -309,6 +387,10 @@ export default function Pipeline({
           <div className="max-h-[480px] overflow-y-auto px-5 py-4 md:px-7">
             {reportTab === "rendered" ? (
               <MarkdownLite md={report} />
+            ) : reportTab === "code" ? (
+              <pre className="overflow-x-auto whitespace-pre-wrap border-l-2 border-coder/50 bg-bg/70 p-4 font-mono text-xs leading-relaxed text-coder">
+                {extractedCodeBlocks || "# No standalone code blocks extracted from this run."}
+              </pre>
             ) : (
               <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-ink/85">{report}</pre>
             )}
